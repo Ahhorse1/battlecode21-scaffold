@@ -133,6 +133,18 @@ public strictfp class RobotPlayer {
     static void runSlanderer() throws GameActionException {
         if (tryMove(randomDirection()))
             System.out.println("I moved!");
+        if(turnCount==1)
+            firstTurn();
+
+        if(rc.getFlag(enlightenmentCenterID)%10>0){
+            int dir=rc.getFlag(enlightenmentCenterID)%10; //one means to top left, then clockwise
+        }//This if statement means we know which direction to go
+        
+        boolean haveFound=false;//If we don't know which corner to go to
+        if(haveFound){
+            rc.setFlag(11);//Set to 11, 12, 13, or 14, where 11 means top left, and then clockwise.
+            //This then communicates to the EC that all slanderers should go there
+        }
     }
 
     static void runMuckraker() throws GameActionException {
