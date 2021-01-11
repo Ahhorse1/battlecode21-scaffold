@@ -11,6 +11,7 @@ public strictfp class RobotPlayer {
 			Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST, };
 
 	static int turnCount;
+	static MapLocation ecLoc;
 
 	/**
 	 * run() is the method that is called when a robot is instantiated in the
@@ -63,27 +64,30 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runEnlightenmentCenter(RobotController rc) throws GameActionException {
-		RobotType toBuild = randomSpawnableRobotType();
-		int gameMode = 0;
-		if (turnCount < 25)
-			gameMode = 1;
-		else if (turnCount < 100)
-			gameMode = 2;
-		else if (turnCount < 225 )
-			gameMode = 3;
-		else 
-			gameMode = 4;
-		switch (gameMode) {
-		case 1:
-			Stage1(rc);
-		case 2:
-			Stage2(rc);
-		case 3:
-			Stage3(rc);
-		case 4:
-			Normal(rc);
-
+		int flag = rc.getFlag(rc.getID());
+		if(flag == 0) {
+			flag = 9;
 		}
+		if (rc.isReady()) {
+			if (flag < 13)
+				for (Direction dir : directions) {
+					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 20)) {
+						rc.buildRobot(RobotType.MUCKRAKER, dir, 20);
+						System.out.println("Built MUCKRAKER");
+						flag ++;
+					}
+				}
+		}
+		rc.setFlag(flag);
+		// RobotType toBuild = randomSpawnableRobotType();
+		/*
+		 * int gameMode = 0; if (turnCount < 25) gameMode = 1; else if (turnCount < 100)
+		 * gameMode = 2; else if (turnCount < 225) gameMode = 3; else gameMode = 4;
+		 * switch (gameMode) { case 1: Stage1(rc); case 2: Stage2(rc); case 3:
+		 * Stage3(rc); case 4: Normal(rc);
+		 * 
+		 * }
+		 */
 
 	}
 
@@ -122,21 +126,142 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runMuckraker(RobotController rc) throws GameActionException {
-		Team enemy = rc.getTeam().opponent();
-		int actionRadius = rc.getType().actionRadiusSquared;
-		for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
-			if (robot.type.canBeExposed()) {
-				// It's a slanderer... go get them!
-				if (rc.canExpose(robot.location)) {
-					// System.out.println("e x p o s e d");
-					rc.expose(robot.location);
-					return;
+		MapLocation currentLoc = rc.getLocation();
+		if (rc.getFlag(rc.getID()) == 0) {
+			for (Direction dir : directions) {
+				if (rc.senseRobotAtLocation(currentLoc.add(dir)) != null) {
+					RobotInfo temp = rc.senseRobotAtLocation(currentLoc.add(dir));
+					if (temp.type.equals(RobotType.ENLIGHTENMENT_CENTER)) {
+						ecLoc = temp.location;
+						System.out.println("EnlightmentCenter xCoord: " + ecLoc.x);
+						System.out.println("EnlightmentCenter yCoord: " + ecLoc.y);
+						int flag = rc.getFlag(temp.ID);
+						if (flag / 10 == 1) {
+							switch (flag % 10) {
+							case 0:
+								rc.setFlag(1000000);
+								break;
+							case 1:
+								rc.setFlag(2000000);
+								break;
+							case 2:
+								rc.setFlag(3000000);
+								break;
+							case 3:
+								rc.setFlag(4000000);
+								break;
+							}
+						}
+					}
 				}
 			}
 		}
-		tryMove(randomDirection());
-		// if (tryMove(randomDirection()))
-		// System.out.println("I moved!");
+		if (rc.isReady()) {
+			if (isCornerRunner(rc)) {
+				boolean isAtCorner = false;
+				int flag = rc.getFlag(rc.getID());
+				switch (flag / 1000000) {
+				case 1:
+					if (rc.canMove(Direction.NORTHWEST)) {
+						rc.move(Direction.NORTHWEST);
+						return;
+					} else if (rc.canMove(Direction.NORTH)) {
+						rc.move(Direction.NORTH);
+						return;
+					} else if (rc.canMove(Direction.WEST)) {
+						rc.move(Direction.WEST);
+						return;
+					} else {
+						isAtCorner = true;
+						System.out.println("At Northwest Corner");
+					}
+					break;
+				case 2:
+					if (rc.canMove(Direction.NORTHEAST)) {
+						rc.move(Direction.NORTHEAST);
+						return;
+					} else if (rc.canMove(Direction.NORTH)) {
+						rc.move(Direction.NORTH);
+						return;
+					} else if (rc.canMove(Direction.EAST)) {
+						rc.move(Direction.EAST);
+						return;
+					} else {
+						isAtCorner = true;
+						System.out.println("At Northeast Corner");
+					}
+					break;
+				case 3:
+					if (rc.canMove(Direction.SOUTHEAST)) {
+						rc.move(Direction.SOUTHEAST);
+						return;
+					} else if (rc.canMove(Direction.SOUTH)) {
+						rc.move(Direction.SOUTH);
+						return;
+					} else if (rc.canMove(Direction.EAST)) {
+						rc.move(Direction.EAST);
+						return;
+					} else {
+						isAtCorner = true;
+						System.out.println("At Southeast Corner");
+					}
+					break;
+				case 4:
+					if (rc.canMove(Direction.SOUTHWEST)) {
+						rc.move(Direction.SOUTHWEST);
+						return;
+					} else if (rc.canMove(Direction.SOUTH)) {
+						rc.move(Direction.SOUTH);
+						return;
+					} else if (rc.canMove(Direction.WEST)) {
+						rc.move(Direction.WEST);
+						return;
+					} else {
+						isAtCorner = true;
+						System.out.println("At Southwest Corner");
+					}
+					break;
+				}
+				if (isAtCorner) {
+					flag += 10000000;
+					int differenceX = currentLoc.x - ecLoc.x;
+					int differenceY = currentLoc.y - ecLoc.y;
+					if (differenceX < 0) {
+						flag += 100000;
+						flag += Math.abs(differenceX) * 1000;
+					} else
+						flag += Math.abs(differenceX) * 1000;
+					if (differenceY < 0) {
+						flag += 100;
+						flag += Math.abs(differenceY);
+					} else
+						flag += Math.abs(differenceY);
+					rc.setFlag(flag);
+				}
+			} else {
+				Team enemy = rc.getTeam().opponent();
+				int actionRadius = rc.getType().actionRadiusSquared;
+				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
+					if (robot.type.canBeExposed()) {
+						// It's a slanderer... go get them!
+						if (rc.canExpose(robot.location)) {
+							// System.out.println("e x p o s e d");
+							rc.expose(robot.location);
+							return;
+						}
+					}
+				}
+				tryMove(randomDirection());
+			}
+		}
+		// 0 0 0 0 0 0 0 0
+		// First Number is if it's finished or not
+		// Second Number is direction
+		// Third Number is if it's positive or negative
+		// Fourth and Fifth combine to display difference in distance in X
+		// Sixth is if it's positive or negative
+		// Seventh and Eight combine to display difference in distance in Y
+
 	}
 
 	/**
@@ -314,26 +439,34 @@ public strictfp class RobotPlayer {
 	}
 
 	static void Normal(RobotController rc) throws GameActionException {
-		if(rc.isReady()) {
-			
-			if(turnCount%2==0) {
+		if (rc.isReady()) {
+
+			if (turnCount % 2 == 0) {
 				int bidAmount = 50;
-				bidAmount = bidAmount*turnCount/200;
+				bidAmount = bidAmount * turnCount / 200;
 				if (rc.canBid(bidAmount)) {
 					rc.bid(bidAmount);
 					System.out.println("Bidded for Vote");
 				}
-			}
-			else {
+			} else {
 				RobotType toBuild = randomSpawnableRobotType();
 				int influence = 25;
 				if (toBuild.equals(RobotType.POLITICIAN))
 					influence = 50;
 				for (Direction dir : directions) {
-					if (rc.canBuildRobot(toBuild, dir, influence)) 
+					if (rc.canBuildRobot(toBuild, dir, influence))
 						rc.buildRobot(toBuild, dir, influence);
 				}
 			}
 		}
+	}
+
+	static boolean isCornerRunner(RobotController rc) throws GameActionException {
+		// checks Robot Flag's to see if it is a corner runner
+		int flag = rc.getFlag(rc.getID());
+		boolean isCornerRunner = false;
+		if (flag / 1000000 > 0)
+			isCornerRunner = true;
+		return isCornerRunner;
 	}
 }
