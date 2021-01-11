@@ -1,6 +1,9 @@
-package examplefuncsplayer;
+package BenPlayer;
 
 import battlecode.common.*;
+import com.sun.xml.internal.xsom.util.DeferedCollection;
+
+import java.util.ArrayList;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
@@ -22,7 +25,15 @@ public strictfp class RobotPlayer {
             Direction.NORTHWEST,
     };
 
-    static int turnCount;
+    static int turnCount=0;
+
+    //Variables that store ID number of the created units for enlightenment centers
+    static ArrayList<Integer> createdPoliticiansID;
+    static ArrayList<Integer> createdSlanderersID;
+    static ArrayList<Integer> createdMuckrakersID;
+
+    //Store ID of the enlightenment center that created you
+    static int enlightenmentCenterID;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -76,12 +87,35 @@ public strictfp class RobotPlayer {
         for (Direction dir : directions) {
             if (rc.canBuildRobot(toBuild, dir, influence)) {
                 rc.buildRobot(toBuild, dir, influence);
+                MapLocation loc= rc.adjacentLocation(dir);
+
+                //Update list of built robots MUST BE RUN WHEN BUILDING A ROBOT
+                switch(toBuild){
+                    case MUCKRAKER:
+                        createdMuckrakersID.add(rc.senseRobotAtLocation(loc).getID());
+                        break;
+                    case SLANDERER:
+                        createdSlanderersID.add(rc.senseRobotAtLocation(loc).getID());
+                        break;
+                    case POLITICIAN:
+                        createdPoliticiansID.add(rc.senseRobotAtLocation(loc).getID());
+                        break;
+                }
             } else {
                 break;
             }
         }
-    }
 
+        //set the flag of the enlightenment center by encoding politician cnt, slanderer cnt, muckraker cnt
+        int polCnt=getCntUnit(RobotType.POLITICIAN)[0];
+        int[] slanCnt=getCntUnit(RobotType.SLANDERER); //the second value of array is the direction of where to go
+        int mucCnt=getCntUnit(RobotType.MUCKRAKER)[0];
+        rc.setFlag(getEnlFlag(polCnt,slanCnt[0],mucCnt, slanCnt[1]));
+
+
+
+
+    }
     static void runPolitician() throws GameActionException {
         Team enemy = rc.getTeam().opponent();
         int actionRadius = rc.getType().actionRadiusSquared;
@@ -116,6 +150,10 @@ public strictfp class RobotPlayer {
         }
         if (tryMove(randomDirection()))
             System.out.println("I moved!");
+
+        if(turnCount==1){
+
+        }
     }
 
     /**
@@ -149,5 +187,85 @@ public strictfp class RobotPlayer {
             rc.move(dir);
             return true;
         } else return false;
+    }
+
+    /**
+    *To be run as an enlightenment center
+     * Also updates slanderers to politicians in the local list
+     * Returns integer array of first the cnt, and then the direction of the first slanderer detected
+     * @param type The type of robot to be counted
+     *
+     */
+    static int[] getCntUnit(RobotType type) throws GameActionException{
+        int cnt=0;
+        int dir=0;
+        switch(type) {
+            case POLITICIAN:
+                for (int id : createdPoliticiansID)
+                    if (rc.canGetFlag(id))//canGetFlag is used as a proxy for whether it exists
+                        cnt++;
+            case SLANDERER:
+                for (int x=0;x<createdSlanderersID.size();x++) {
+                    int id=createdSlanderersID.get(x);
+                    if (rc.canGetFlag(id))
+                        if (rc.canSenseRobot(id)&&rc.senseRobot(id).getType().equals(RobotType.SLANDERER)) {
+                            cnt++;
+                            if(rc.getFlag(id)>=11&&rc.getFlag(id)<=14){
+                                if(rc.getFlag(rc.getID())%10==0){//We find direction of slanderer if we haven't set one yet
+                                    dir=rc.getFlag(id)%10;
+                                }
+                            }
+                        }
+                        else { //Ensure that slanderer hasn't changed to a politician and update
+                            createdSlanderersID.remove(x);
+                            createdPoliticiansID.add(id);
+                        }
+                }
+            case MUCKRAKER:
+                for (int id : createdMuckrakersID)
+                    if (rc.canGetFlag(id))
+                        cnt++;
+
+        }
+        int[] ret={cnt,dir};
+        return ret;
+
+    }
+
+    /**
+    *Outputs what we want the enlightenment center flag to be
+    * @param p politician cnt
+     * @param s slanderer cnt
+     * @param m muckracker cnt
+     *  2^24=1 67 77 21 6
+     *          p  s  m  dir
+     * @param dir 1 means top left, 2 top right, 3 bottom right, 4 bottom left
+     *
+     */
+    static int getEnlFlag(int p, int s, int m, int dir) throws GameActionException{
+        int flg=0;
+        flg+=p*100000;
+        flg+=s*100;
+        flg+=m*10;
+        flg+=dir;
+        if(rc.canSetFlag(flg))//Could theoretically be removed after testing
+            return flg;
+        return 0;
+
+    }
+
+
+    /**Code for non-enlightenment center units
+     * Finds the ID of the enlightenment center that created it and sets that to a proper number
+     */
+    static void firstTurn(){
+        RobotInfo[] nearby=rc.senseNearbyRobots(2,rc.getTeam());
+        for(RobotInfo r : nearby){
+            if(r.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){
+                enlightenmentCenterID=r.getID();
+                return;
+            }
+
+        }
     }
 }
