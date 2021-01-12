@@ -1,6 +1,7 @@
 package jcplayer;
 
 import battlecode.common.*;
+import java.util.ArrayList;
 
 public strictfp class RobotPlayer {
 	static RobotController rc;
@@ -12,6 +13,15 @@ public strictfp class RobotPlayer {
 
 	static int turnCount;
 	static MapLocation ecLoc;
+	static int shortestDistance;
+
+	// Variables that store ID number of the created units for enlightenment centers
+	static ArrayList<Integer> createdPoliticiansID;
+	static ArrayList<Integer> createdSlanderersID;
+	static ArrayList<Integer> createdMuckrakersID;
+
+	// Store ID of the enlightenment center that created you
+	static int enlightenmentCenterID;
 
 	/**
 	 * run() is the method that is called when a robot is instantiated in the
@@ -65,16 +75,14 @@ public strictfp class RobotPlayer {
 
 	static void runEnlightenmentCenter(RobotController rc) throws GameActionException {
 		int flag = rc.getFlag(rc.getID());
-		if(flag == 0) {
-			flag = 9;
-		}
 		if (rc.isReady()) {
-			if (flag < 13)
+			if (flag < 4)
 				for (Direction dir : directions) {
 					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 20)) {
 						rc.buildRobot(RobotType.MUCKRAKER, dir, 20);
 						System.out.println("Built MUCKRAKER");
-						flag ++;
+						createdMuckrakersID.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());
+						flag++;
 					}
 				}
 		}
@@ -95,22 +103,19 @@ public strictfp class RobotPlayer {
 		Team enemy = rc.getTeam().opponent();
 		int actionRadius = rc.getType().actionRadiusSquared;
 		RobotInfo[] attackable = rc.senseNearbyRobots(actionRadius, enemy);
-		if (attackable.length != 0 && rc.canEmpower(actionRadius)) {
-			// System.out.println("empowering...");
+		RobotInfo[] neutral = rc.senseNearbyRobots(actionRadius, Team.NEUTRAL);
+		if ((attackable.length != 0 || neutral.length != 0) && rc.canEmpower(actionRadius)) {
 			rc.empower(actionRadius);
-			// System.out.println("empowered");
 			return;
 		}
 		tryMove(randomDirection());
-		// if (tryMove(randomDirection()))
-		// System.out.println("I moved!");
 	}
 
 	static void runSlanderer(RobotController rc) throws GameActionException {
 		int minRoundInfluence = 20;
 		if (turnCount > 225)
 			minRoundInfluence = 25;
-		if (rc.getInfluence() < minRoundInfluence) {
+		if (rc.getInfluence() < 41) {
 			tryMove(randomDirection());
 		} else {
 			RobotInfo[] nearbyRobots = rc.senseNearbyRobots(20, rc.getTeam());
@@ -172,8 +177,32 @@ public strictfp class RobotPlayer {
 						rc.move(Direction.WEST);
 						return;
 					} else {
-						isAtCorner = true;
-						System.out.println("At Northwest Corner");
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.NORTH);
+						tempLoc = tempLoc.add(Direction.NORTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.WEST);
+						tempLoc = tempLoc.add(Direction.WEST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.NORTHEAST)) {
+								rc.move(Direction.NORTHEAST);
+								return;
+							} else if (rc.canMove(Direction.EAST)) {
+								rc.move(Direction.EAST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.SOUTHWEST)) {
+								rc.move(Direction.SOUTHWEST);
+								return;
+							} else if (rc.canMove(Direction.SOUTH)) {
+								rc.move(Direction.SOUTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Northwest Corner");
+						}
 					}
 					break;
 				case 2:
@@ -187,8 +216,32 @@ public strictfp class RobotPlayer {
 						rc.move(Direction.EAST);
 						return;
 					} else {
-						isAtCorner = true;
-						System.out.println("At Northeast Corner");
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.NORTH);
+						tempLoc = tempLoc.add(Direction.NORTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.EAST);
+						tempLoc = tempLoc.add(Direction.EAST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.NORTHWEST)) {
+								rc.move(Direction.NORTHWEST);
+								return;
+							} else if (rc.canMove(Direction.WEST)) {
+								rc.move(Direction.WEST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.SOUTHEAST)) {
+								rc.move(Direction.SOUTHEAST);
+								return;
+							} else if (rc.canMove(Direction.SOUTH)) {
+								rc.move(Direction.SOUTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Northeast Corner");
+						}
 					}
 					break;
 				case 3:
@@ -202,8 +255,32 @@ public strictfp class RobotPlayer {
 						rc.move(Direction.EAST);
 						return;
 					} else {
-						isAtCorner = true;
-						System.out.println("At Southeast Corner");
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.EAST);
+						tempLoc = tempLoc.add(Direction.EAST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.SOUTHWEST)) {
+								rc.move(Direction.SOUTHWEST);
+								return;
+							} else if (rc.canMove(Direction.WEST)) {
+								rc.move(Direction.WEST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.NORTHEAST)) {
+								rc.move(Direction.NORTHEAST);
+								return;
+							} else if (rc.canMove(Direction.NORTH)) {
+								rc.move(Direction.NORTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Southeast Corner");
+						}
 					}
 					break;
 				case 4:
@@ -217,8 +294,32 @@ public strictfp class RobotPlayer {
 						rc.move(Direction.WEST);
 						return;
 					} else {
-						isAtCorner = true;
-						System.out.println("At Southwest Corner");
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.WEST);
+						tempLoc = tempLoc.add(Direction.WEST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.SOUTHEAST)) {
+								rc.move(Direction.SOUTHEAST);
+								return;
+							} else if (rc.canMove(Direction.EAST)) {
+								rc.move(Direction.EAST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.NORTHWEST)) {
+								rc.move(Direction.NORTHWEST);
+								return;
+							} else if (rc.canMove(Direction.NORTH)) {
+								rc.move(Direction.NORTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Southwest Corner");
+						}
 					}
 					break;
 				}
@@ -468,5 +569,41 @@ public strictfp class RobotPlayer {
 		if (flag / 1000000 > 0)
 			isCornerRunner = true;
 		return isCornerRunner;
+	}
+
+	/*
+	 * 
+	 */
+	static int closestCorner(RobotController rc) throws GameActionException {
+		int corner = 0;
+		int currentDistance = 1000000;
+		MapLocation currentLoc = rc.getLocation();
+		int ecX = currentLoc.x;
+		int ecY = currentLoc.y;
+		for (int i = 0; i < createdMuckrakersID.size(); i++) {
+			int temp = rc.getFlag(createdMuckrakersID.get(i));
+			int x = 0;
+			int y = 0;
+			int tempCorner = 0;
+			int tempDistance = 0;
+			if (temp / 10000000 > 1) {
+				tempCorner = (temp % 10000000) / 1000000;
+				if (temp % 1000000 >= 100000) {
+					x = 0 - (temp % 100000) / 1000;
+					if (temp % 1000 >= 100)
+						y = 0 - (temp % 100);
+					else
+						y = temp % 100;
+				} else
+					x = (temp % 100000) / 1000;
+				MapLocation cornerML = currentLoc.translate(x, y);
+				tempDistance = currentLoc.distanceSquaredTo(cornerML);
+				if (tempDistance < currentDistance) {
+					currentDistance = tempDistance;
+					corner = tempCorner;
+				}
+			}
+		}
+		return corner;
 	}
 }
