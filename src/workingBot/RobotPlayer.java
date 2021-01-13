@@ -323,7 +323,7 @@ public strictfp class RobotPlayer {
     }
     /*Tells you if you can construct the unit on top of the stack*/
 
-    static Boolean canConstruct() throws GameActionException
+    static boolean canConstruct() throws GameActionException
     {
         if(toBeConstructed.size() == 0)
         {
