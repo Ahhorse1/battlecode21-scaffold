@@ -92,82 +92,7 @@ public strictfp class RobotPlayer {
         }
     }
 
-    /*
-    Runs Stage One of the Strategy:
-        3 Slanderer - 41 Influence (Total 123 Influence, 2 initially and 3rd is staggered)
-        1 Politician - 25 Influence
-        3 Politicians - 11 Influence
-        Bidding 1 for vote
-        - Winston */
-    static void runStageOne() throws GameActionException {
-        if (createdMuckrakersID.size() < previousMuckrakers) {
-            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
-                toBeConstructed.add(0, 13);
-            }
-        }
-        if (createdSlanderersID.size() < previousSlanderer) {
-            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
-                toBeConstructed.add(0, 411);
-            }
-        }
-        if (createdPoliticiansID.size() < previousPolitician) {
-            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
-                toBeConstructed.add(0, 202);
-            }
-        }
-        if (rc.isReady())
-        {
-         if (toBeConstructed.size() == 0) {
-                if (rc.canBid(1)) {
-                   rc.bid(1);
-             }
-         }
-         else if (canConstruct()) {
-             construct();
-            }
-        }
-        setPrevious();
-    }
-    static void runStageTwo() throws GameActionException {
-        if (createdMuckrakersID.size() < previousMuckrakers) {
-            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
-                toBeConstructed.add(0, 13);
-            }
-        }
-        if (createdSlanderersID.size() < previousSlanderer) {
-            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
-                toBeConstructed.add(0, 411);
-            }
-        }
-        if (createdPoliticiansID.size() < previousPolitician) {
-            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
-                toBeConstructed.add(0, 202);
-            }
-        }
-        if (rc.isReady())
-        {
-
-            if (canConstruct()) {
-                construct();
-            }
-            else if (toBeConstructed.size() == 0)
-            {
-                if(turnCount%4 == 1 || turnCount%4 == 3) {
-                    int influenceDifference = rc.getInfluence() - previousInfluence;
-                    if (rc.canBid(influenceDifference)) {
-                        rc.bid(influenceDifference);
-                    }
-                }
-                else
-                {
-                    toBeConstructed.add(13);
-                    construct();
-                }
-            }
-
-        }
-        setPrevious();
-    }
+   
     static void runEnlightenmentCenter() throws GameActionException {
         if(turnCount == 1)
         {
@@ -274,7 +199,83 @@ public strictfp class RobotPlayer {
         //if (tryMove(randomDirection()))
             //System.out.println("I moved!");
     }
+     /*
+    Runs Stage One of the Strategy:
+        3 Slanderer - 41 Influence (Total 123 Influence, 2 initially and 3rd is staggered)
+        1 Politician - 25 Influence
+        3 Politicians - 11 Influence
+        Bidding 1 for vote
+        - Winston */
+    static void runStageOne() throws GameActionException {
+        if (createdMuckrakersID.size() < previousMuckrakers) {
+            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
+                toBeConstructed.add(0, 13);
+            }
+        }
+        if (createdSlanderersID.size() < previousSlanderer) {
+            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
+                toBeConstructed.add(0, 411);
+            }
+        }
+        if (createdPoliticiansID.size() < previousPolitician) {
+            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
+                toBeConstructed.add(0, 202);
+            }
+        }
+        if (rc.isReady())
+        {
+         if (toBeConstructed.size() == 0) {
+                if (rc.canBid(1)) {
+                   rc.bid(1);
+             }
+         }
+         else if (canConstruct()) {
+             construct();
+            }
+        }
+        setPrevious();
+    }
+    static void runStageTwo() throws GameActionException {
+        if (createdMuckrakersID.size() < previousMuckrakers) {
+            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
+                toBeConstructed.add(0, 13);
+            }
+        }
+        if (createdSlanderersID.size() < previousSlanderer) {
+            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
+                toBeConstructed.add(0, 411);
+            }
+        }
+        if (createdPoliticiansID.size() < previousPolitician) {
+            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
+                toBeConstructed.add(0, 202);
+            }
+        }
+        if (rc.isReady())
+        {
 
+            if (canConstruct()) {
+                construct();
+            }
+            else if (toBeConstructed.size() == 0)
+            {
+                if(turnCount%4 == 1 || turnCount%4 == 3) {
+                    int influenceDifference = rc.getInfluence() - previousInfluence;
+                    if (rc.canBid(influenceDifference)) {
+                        rc.bid(influenceDifference);
+                    }
+                }
+                else
+                {
+                    toBeConstructed.add(13);
+                    construct();
+                }
+            }
+
+        }
+        setPrevious();
+    }
+    
     /* Sets all the previous variables to current round settings.
     * To be used right before moving onto the next round*/
     static void setPrevious()
