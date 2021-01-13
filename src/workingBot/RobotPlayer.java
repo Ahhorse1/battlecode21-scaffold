@@ -1,5 +1,5 @@
 
-package WinstonPlayer;
+package workingBot;
 import battlecode.common.*;
 import java.util.ArrayList;
 
