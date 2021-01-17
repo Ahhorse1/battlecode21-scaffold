@@ -1,5 +1,6 @@
 package victorPlayer;
 import battlecode.common.*;
+import java.util.ArrayList;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
@@ -24,6 +25,8 @@ public strictfp class RobotPlayer {
     //protecting is whether or not a robot is protecting a square or not
     static int turnCount;
     static boolean protecting = false;
+    static boolean hasDestination;
+    static MapLocation destination;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -45,7 +48,7 @@ public strictfp class RobotPlayer {
             try {
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You may rewrite this into your own control structure if you wish.
-                System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
+                //System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
                 switch (rc.getType()) {
                     case ENLIGHTENMENT_CENTER: runEnlightenmentCenter(); break;
                     case POLITICIAN:           runPolitician();          break;
@@ -66,12 +69,12 @@ public strictfp class RobotPlayer {
     static void runEnlightenmentCenter() throws GameActionException {
         RobotType toBuild = randomSpawnableRobotType();
         int influence = 50;
+        rc.setFlag(1);
         for (Direction dir : directions) {
             if (rc.canBuildRobot(toBuild, dir, influence)) {
                 rc.buildRobot(toBuild, dir, influence);
-            } else {
-                break;
-            }
+            } 
+      
         }
     }
 
@@ -80,9 +83,9 @@ public strictfp class RobotPlayer {
         int actionRadius = rc.getType().actionRadiusSquared;
         RobotInfo[] attackable = rc.senseNearbyRobots(actionRadius, enemy);
         if (attackable.length != 0 && rc.canEmpower(actionRadius)) {
-            System.out.println("empowering...");
+           // System.out.println("empowering...");
             rc.empower(actionRadius);
-            System.out.println("empowered");
+           // System.out.println("empowered");
             return;
         }
         
@@ -97,7 +100,7 @@ public strictfp class RobotPlayer {
 
     static void runSlanderer() throws GameActionException {
         if (tryMove(randomDirection()))
-            System.out.println("I moved!");
+           System.out.println("I moved!");
     }
 
     static void runMuckraker() throws GameActionException {
@@ -107,14 +110,14 @@ public strictfp class RobotPlayer {
             if (robot.type.canBeExposed()) {
                 // It's a slanderer... go get them!
                 if (rc.canExpose(robot.location)) {
-                    System.out.println("e x p o s e d");
+                  //  System.out.println("e x p o s e d");
                     rc.expose(robot.location);
                     return;
                 }
             }
         }
         if (tryMove(randomDirection()))
-            System.out.println("I moved!");
+          System.out.println("I moved!");
     }
 
     /**
@@ -143,7 +146,7 @@ public strictfp class RobotPlayer {
      * @throws GameActionException
      */
     static boolean tryMove(Direction dir) throws GameActionException {
-        System.out.println("I am trying to move " + dir + "; " + rc.isReady() + " " + rc.getCooldownTurns() + " " + rc.canMove(dir));
+       // System.out.println("I am trying to move " + dir + "; " + rc.isReady() + " " + rc.getCooldownTurns() + " " + rc.canMove(dir));
         if (rc.canMove(dir)) {
             rc.move(dir);
             return true;
@@ -157,7 +160,7 @@ public strictfp class RobotPlayer {
     static void latticeStructure() throws GameActionException
     {
     	//if it is protecting then this method just makes the robot not move at all
-    	if(protecting)
+    	/*if(protecting)
     	{
     		System.out.println("I AM PROTECTING");
     		Clock.yield();
@@ -167,8 +170,12 @@ public strictfp class RobotPlayer {
     	{
     		protecting = afterMovedIsProtecting();
 
-    	}
-    	
+    	}*/
+    	int id = rc.getID();
+    	if(hasDestination == false)
+    		findDestination();
+    	System.out.println("" + destination.x + " " + destination.y);
+    	traverse(destination);
     }
     
     
@@ -178,7 +185,9 @@ public strictfp class RobotPlayer {
     {
     	
     	//to try to keep protection all around, random number generator to generate which square to go to
-    	int random = (int) (Math.random()*4);
+    	int random = (int) (Math.random()*8);
+    	
+    	/*
     	if(onCorner())
     	{
     		if(random == 0)
@@ -206,6 +215,7 @@ public strictfp class RobotPlayer {
     				return true;
     			}
     	}
+    	*/
     	
     	//if it is not on a corner square (explained more detail in next method) then it tries to get on one
     	if(!onCorner())
@@ -224,6 +234,127 @@ public strictfp class RobotPlayer {
     				rc.move(Direction.NORTH);
     	}
 		return false;
+    }
+    
+    static void findDestination() throws GameActionException
+    {
+    	int random = (int) (Math.random()*8);
+    	
+    	RobotInfo[] nearby = rc.senseNearbyRobots(2);
+    	if(nearby.length == 0)
+    	{
+    		System.out.println("NO NEARBY!!");
+    	}
+    	MapLocation center = rc.getLocation();
+    	
+    	ArrayList<MapLocation> options = new ArrayList<MapLocation>();
+    	
+    	
+    	for(int i = 0; i < nearby.length; i++)
+    	{
+    		int id = nearby[i].getID();
+    		//currently 1 is if the robot is protecting something or is the enlightenment center
+    		if(rc.getFlag(id) == 1)
+    		{
+    			options.add(nearby[i].getLocation());
+    		}
+    		int optionsRandom = (int)(Math.random()*options.size());
+    		center = options.get(optionsRandom);
+    	}
+    	
+    	
+    	switch (random)
+    	{
+    		case 0: 
+    			System.out.println("THIS IS 0");
+    			destination = center.add(Direction.NORTHWEST);
+    			destination = destination.add(Direction.NORTHWEST);
+    			break;
+    		case 1: 
+    			System.out.println("THIS IS 1");
+    			destination = center.add(Direction.NORTH);
+    			destination = destination.add(Direction.NORTH);
+    			break;
+    		case 2: 
+    			System.out.println("THIS IS 2");
+    			destination = center.add(Direction.NORTHEAST);
+    			destination = destination.add(Direction.NORTHEAST);
+    			break;
+    		case 3: 
+    			System.out.println("THIS IS 3");
+    			destination = center.add(Direction.EAST);
+    			destination = destination.add(Direction.EAST);
+    			break;
+    		case 4: 
+    			System.out.println("THIS IS 4");
+    			destination = center.add(Direction.SOUTHEAST);
+    			destination = destination.add(Direction.SOUTHEAST);
+    			break;
+    		case 5: 
+    			System.out.println("THIS IS 5");
+    			destination = center.add(Direction.SOUTH);
+    			destination = destination.add(Direction.SOUTH);
+    			break;
+    		case 6: 
+    			System.out.println("THIS IS 6");
+    			destination = center.add(Direction.SOUTHWEST);
+    			destination = destination.add(Direction.SOUTHWEST);
+    			break;
+    		case 7: 
+    			System.out.println("THIS IS 7");
+    			destination = center.add(Direction.WEST);
+    			destination = destination.add(Direction.WEST);
+    			break;
+    	}
+    	
+    	hasDestination = true;
+    	
+    }
+    static void traverse(MapLocation destination) throws GameActionException
+    {
+    	Direction toGo = rc.getLocation().directionTo(destination);
+    	int id = rc.getID();
+    	System.out.println("THIS IS MY FLAG " + rc.getFlag(id));
+    	if(rc.getFlag(id) == 1)
+    	{
+    		System.out.println("YIELDING");
+    		Clock.yield();
+    		
+    	}
+    	if(rc.canMove(toGo))
+    	{
+    		rc.move(toGo);
+    		
+    		if(rc.getLocation().equals(destination))
+    			rc.setFlag(1);
+    		else
+    			rc.setFlag(0);
+    		Clock.yield();
+    	}
+    	if(rc.isLocationOccupied(destination))
+    	{
+    		int idOfRobotAtDestination = rc.senseRobotAtLocation(destination).getID();
+    		if(!rc.canMove(toGo) && rc.getLocation().isAdjacentTo(destination) && rc.getFlag(idOfRobotAtDestination) == 1 && !rc.getLocation().equals(destination))
+        	{
+        		
+        		findDestination();
+        	}
+    	}
+    	
+    	if(!rc.canMove(toGo) && rc.getFlag(id) != 1)
+    	{
+    		Direction[] options = {toGo.rotateLeft(), toGo.rotateRight()};
+    		for (Direction a: options)
+    		{
+    			if(rc.canMove(a))
+    				rc.move(a);
+    		}
+    		
+    	}
+    	
+    	
+    	
+    	
     }
     
     
