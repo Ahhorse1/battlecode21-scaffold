@@ -30,16 +30,23 @@ public strictfp class RobotPlayer {
     static ArrayList<Integer> createdSlanderersID = new ArrayList<Integer>();
     static ArrayList<Integer> createdMuckrakersID = new ArrayList<Integer>();
 
+    //Array version
+    //Each array is +1 size larger than it's supposed to be, with max_int or min_int in the 0 position to signal whether...
+    //...the array is supposed to be activated (max_int = yea, min_int = nay)
+    // areas with ids have numbers, empty spaces hold -1
+    static int[] createdPoliticians25 = new int[1];
+    static int[] createdPoliticians11 = new int[1];
+    static int[] createdSlanderers41 = new int[1];
     /*Stores what needs to be built
       They should be added in as influence*10 + type, where slanderer = 1, politician = 2, muckraker =3
       -Winston */
     static ArrayList<Integer> toBeConstructed = new ArrayList<Integer>();
 
     //Stores the previous round's number of created units and influence
-    static int previousPolitician;
-    static int previousSlanderer;
-    static int previousMuckrakers;
-    static int previousInfluence;
+    static int previousPolitician = 0;
+    static int previousSlanderer = 0;
+    static int previousMuckrakers = 0;
+    static int previousInfluence = 0;
 
     //Store ID of the enlightenment center that created you
     //-Ben
@@ -91,6 +98,39 @@ public strictfp class RobotPlayer {
         }
     }
 
+
+    static void runEnlightenmentCenter() throws GameActionException
+    {
+        if(turnCount == 0)
+        {
+            createdPoliticians11[0] = Integer.MAX_VALUE;
+            createdPoliticians11 = resizeArray(createdPoliticians11, 4);
+            createdPoliticians25[0] = Integer.MAX_VALUE;
+            createdPoliticians25 = resizeArray(createdPoliticians25, 2);
+            createdSlanderers41[0] = Integer.MAX_VALUE;
+            createdSlanderers41 = resizeArray(createdSlanderers41,4);
+        }
+        else if(turnCount == 30)
+        {
+            createdPoliticians11 = resizeArray(createdPoliticians11, 31);
+            createdPoliticians25 = resizeArray(createdPoliticians25, 19);
+            createdSlanderers41 = resizeArray(createdSlanderers41, 11);
+        }
+        else if(turnCount == 225)
+        {
+            createdPoliticians11 = resizeArray(createdPoliticians11, 101);
+            createdPoliticians25 = resizeArray(createdPoliticians25, 51);
+            createdSlanderers41 = resizeArray(createdSlanderers41, 26);
+        }
+        else if(turnCount == 625)
+        {
+
+        }
+        else
+        {
+            runStageOne();
+        }
+    }
     /*
     Runs Stage One of the Strategy:
         3 Slanderer - 41 Influence (Total 123 Influence, 2 initially and 3rd is staggered)
@@ -99,132 +139,74 @@ public strictfp class RobotPlayer {
         Bidding 1 for vote
         - Winston */
     static void runStageOne() throws GameActionException {
-        if (createdMuckrakersID.size() < previousMuckrakers) {
-            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
-                toBeConstructed.add(0, 13);
-            }
-        }
-        if (createdSlanderersID.size() < previousSlanderer) {
-            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
-                toBeConstructed.add(0, 411);
-            }
-        }
-        if (createdPoliticiansID.size() < previousPolitician) {
-            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
-                toBeConstructed.add(0, 202);
-            }
-        }
+        replace();
         if (rc.isReady())
         {
-         if (toBeConstructed.size() == 0) {
-                if (rc.canBid(1)) {
-                   rc.bid(1);
+            buildUnits();
+        }
+    }
+    /* static void runStageTwo() throws GameActionException {
+         maintainForces();
+         if (rc.isReady())
+         {
+
+             if (canConstruct()) {
+                 construct();
              }
+             else if (toBeConstructed.size() == 0)
+             {
+                 if(turnCount%4 == 1 || turnCount%4 == 3) {
+                     int influenceDifference = rc.getInfluence() - previousInfluence;
+                     if (rc.canBid(influenceDifference)) {
+                         rc.bid(influenceDifference);
+                     }
+                 }
+                 else
+                 {
+                     toBeConstructed.add(13);
+                     construct();
+                 }
+             }
+
          }
-         else if (canConstruct()) {
-             construct();
-            }
-        }
-        setPrevious();
-    }
-    static void runStageTwo() throws GameActionException {
-        if (createdMuckrakersID.size() < previousMuckrakers) {
-            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
-                toBeConstructed.add(0, 13);
-            }
-        }
-        if (createdSlanderersID.size() < previousSlanderer) {
-            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
-                toBeConstructed.add(0, 411);
-            }
-        }
-        if (createdPoliticiansID.size() < previousPolitician) {
-            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
-                toBeConstructed.add(0, 202);
-            }
-        }
-        if (rc.isReady())
-        {
+         setPrevious();
+     }
+     */
 
-            if (canConstruct()) {
-                construct();
-            }
-            else if (toBeConstructed.size() == 0)
-            {
-                if(turnCount%4 == 1 || turnCount%4 == 3) {
-                    int influenceDifference = rc.getInfluence() - previousInfluence;
-                    if (rc.canBid(influenceDifference)) {
-                        rc.bid(influenceDifference);
-                    }
-                }
-                else
-                {
-                    toBeConstructed.add(13);
-                    construct();
-                }
-            }
-
-        }
-        setPrevious();
-    }
-    static void runEnlightenmentCenter() throws GameActionException {
-        if(turnCount == 1)
-        {
-            int[] toAddStageOne = {411,411,202,202,202,411,202};
-            for(Integer I : toAddStageOne)
-            {
-                toBeConstructed.add(I);
-            }
-            setPrevious();
-        }
-        else if(turnCount<30)
-        {
-            runStageOne();
-        }
-        else if(turnCount == 30)
-        {
-            System.out.println("STAGE TWO COMMENCES");
-            for(int stageTwoS = 0; stageTwoS<10; stageTwoS ++)
-            {
-                System.out.println("STAGE TWO WORKS");
-                toBeConstructed.add(411);
-            }
-            for(int stageTwoM = 0; stageTwoM <48; stageTwoM++)
-            {
-                toBeConstructed.add(202);
-            }
-            setPrevious();
-        }
-        else if(turnCount == 225)
-        {
-            System.out.println("STAGE THREE COMMENCES");
-            for(int stageThreeS = 0; stageThreeS<12; stageThreeS++)
-            {
-                toBeConstructed.add(411);
-            }
-            for(int stageThreeM = 0; stageThreeM < 102; stageThreeM++)
-            {
-                toBeConstructed.add(202);
-            }
-            setPrevious();
-        }
-        else if(turnCount == 625)
-        {
-            System.out.println("STAGE FOUR COMMENCES");
-            for(int stageFourS = 0; stageFourS <75; stageFourS++)
-            {
-                toBeConstructed.add(411);
-            }
-            for(int stageFourM = 0; stageFourM < 150; stageFourM++)
-            {
-                toBeConstructed.add(202);
-            }
-        }
-        else
-        {
-            runStageTwo();
-        }
-    }
+    //Builds units, starting with slanderers, then politicians25 then politicians11
+     static void buildUnits() throws GameActionException
+     {
+         int x = indexOfArray(createdSlanderers41, -1);
+         int y = indexOfArray(createdPoliticians25, -1);
+         int z = indexOfArray(createdPoliticians11, -1);
+         if(x != -1)
+         {
+             if(canConstruct(RobotType.SLANDERER, 41))
+             {
+                 MapLocation loc = construct(RobotType.SLANDERER, 41);
+                 createdSlanderers41[x] = rc.senseRobotAtLocation(loc).getID();
+             }
+             return;
+         }
+         if(y != -1)
+         {
+             if(canConstruct(RobotType.POLITICIAN, 25))
+             {
+                 MapLocation loc = construct(RobotType.POLITICIAN, 25);
+                 createdPoliticians25[y] = rc.senseRobotAtLocation(loc).getID();
+             }
+            return;
+         }
+         if(z != -1)
+         {
+             if(canConstruct(RobotType.POLITICIAN,11))
+             {
+                 MapLocation loc = construct(RobotType.POLITICIAN,11);
+                 createdPoliticians11[z] = rc.senseRobotAtLocation(loc).getID();
+             }
+            return;
+         }
+     }
 
     static void runPolitician() throws GameActionException {
         Team enemy = rc.getTeam().opponent();
@@ -246,6 +228,10 @@ public strictfp class RobotPlayer {
         int actionRadius = rc.getType().actionRadiusSquared;
         RobotInfo[] attackable = rc.senseNearbyRobots(actionRadius, enemy);
         RobotInfo[] neutral = rc.senseNearbyRobots(actionRadius, Team.NEUTRAL);
+        if(turnCount>= 50)
+        {
+            rc.setFlag(1);
+        }
         if ((attackable.length != 0 || neutral.length != 0) && rc.canEmpower(actionRadius)) {
             // System.out.println("empowering...");
             rc.empower(actionRadius);
@@ -270,79 +256,107 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-        //if (tryMove(randomDirection()))
+        tryMove(randomDirection());
             //System.out.println("I moved!");
     }
-
+    static void replace() throws GameActionException
+    {
+        for(int i = 0; i<createdSlanderers41.length; i++)
+        {
+            if(!rc.canGetFlag(createdSlanderers41[i]))
+            {
+                createdSlanderers41[i] = -1;
+            }
+            else if(rc.getFlag(createdSlanderers41[i]) == 1)
+            {
+                createdSlanderers41[i] = -1;
+            }
+        }
+        for(int ii = 0; ii<createdPoliticians25.length; ii++)
+        {
+            if(!rc.canGetFlag(createdPoliticians25[ii]))
+            {
+                createdPoliticians25[ii] = -1;
+            }
+        }
+        for(int iii = 0; iii<createdPoliticians11.length; iii++)
+        {
+            if(!rc.canGetFlag(createdPoliticians11[iii]))
+            {
+                createdPoliticians11[iii] = -1;
+            }
+        }
+    }
+    //Takes in an array and a size and then returns an array of that size, with empty spaces taken up by -1
+    //Remember to call this with +1 size above what you need
+    static int[] resizeArray(int [] array, int size) throws GameActionException
+    {
+        int[] old = array;
+        int[] resized = new int[old.length + size];
+        for(int i = 0; i<old.length; i++)
+        {
+            resized[i] = old[i];
+        }
+        for(int ii = old.length; ii<resized.length; ii++)
+        {
+            resized[ii] = -1;
+        }
+        return resized;
+    }
+    static int indexOfArray(int[] array, int needle)
+    {
+        for(int i = 0; i<array.length; i++)
+        {
+            if(array[i] == needle)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
     /* Sets all the previous variables to current round settings.
     * To be used right before moving onto the next round*/
-    static void setPrevious()
+    static void setPrevious() throws GameActionException
     {
-        previousPolitician = createdPoliticiansID.size();
-        previousMuckrakers = createdMuckrakersID.size();
-        previousSlanderer = createdSlanderersID.size();
+        previousPolitician = getCntUnit(RobotType.POLITICIAN)[0];
+        previousMuckrakers = getCntUnit(RobotType.SLANDERER)[0];
+        previousSlanderer = getCntUnit(RobotType.MUCKRAKER)[0];
         previousInfluence = rc.getInfluence();
     }
     /* Builds units according to the ArrayList toBeConstructed
 
      */
-    static void construct() throws GameActionException
+    static MapLocation construct(RobotType typeToBuild, int influence) throws GameActionException
     {
-        int code = toBeConstructed.get(0);
-        int influence = code/10;
-        RobotType toBuild;
-        if(code%10 == 1)
+        RobotType toBuild = typeToBuild;
+        for (Direction dir : directions)
         {
-            toBuild = RobotType.SLANDERER;
-            System.out.println("CHECKED SLANDERER: " + code);
-        }
-        else if(code%10 == 2)
-        {
-            toBuild = RobotType.POLITICIAN;
-            System.out.println("CHECKED POLITICIAN: " + code);
-        }
-        else
-        {
-            toBuild = RobotType.MUCKRAKER;
-            System.out.println("CHECKED MUCKRAKER: " + code);
-        }
-        for (Direction dir : directions) {
             if (rc.canBuildRobot(toBuild, dir, influence))
             {
-                System.out.println("BUILT");
                 rc.buildRobot(toBuild, dir, influence);
-                toBeConstructed.remove(0);
-            }
-            else
-            {
-                break;
+                return rc.adjacentLocation(dir);
+                //Update list of built robots MUST BE RUN WHEN BUILDING A ROBOT
+               /* switch (toBuild) {
+                    case MUCKRAKER:
+                        createdMuckrakersID.add(rc.senseRobotAtLocation(loc).getID());
+                        break;
+                    case SLANDERER:
+                        createdSlanderersID.add(rc.senseRobotAtLocation(loc).getID());
+                        break;
+                    case POLITICIAN:
+                        createdPoliticiansID.add(rc.senseRobotAtLocation(loc).getID());
+                        break;*/
             }
         }
+        return null;
     }
     /*Tells you if you can construct the unit on top of the stack*/
 
-    static Boolean canConstruct() throws GameActionException
+    static Boolean canConstruct(RobotType typeToBuild, int influence) throws GameActionException
     {
-        if(toBeConstructed.size() == 0)
+        RobotType toBuild = typeToBuild;
+        for (Direction dir : directions)
         {
-            return false;
-        }
-        int code = toBeConstructed.get(0);
-        int influence = code/10;
-        RobotType toBuild;
-        if(code%10 == 1)
-        {
-            toBuild = RobotType.SLANDERER;
-        }
-        if(code%10 == 2)
-        {
-            toBuild = RobotType.POLITICIAN;
-        }
-        else
-        {
-            toBuild = RobotType.MUCKRAKER;
-        }
-        for (Direction dir : directions) {
             if (rc.canBuildRobot(toBuild, dir, influence)) {
                 return true;
             }
@@ -361,9 +375,16 @@ public strictfp class RobotPlayer {
         int dir=0;
         switch(type) {
             case POLITICIAN:
-                for (int id : createdPoliticiansID)
+                for (int id : createdPoliticians11)
                     if (rc.canGetFlag(id))//canGetFlag is used as a proxy for whether it exists
+                    {
                         cnt++;
+                    }
+                for(int id2 : createdPoliticians25)
+                    if(rc.canGetFlag(id2))
+                    {
+                        cnt++;
+                    }
             case SLANDERER:
                 for (int x=0;x<createdSlanderersID.size();x++) {
                     int id=createdSlanderersID.get(x);
