@@ -102,7 +102,7 @@ public strictfp class RobotPlayer {
         /*3 Slanderer - 41 Influence (412)
         3 Politician - 20 Influence (201)
         4 Corner Runners Politicians - 1 Influence (11) */
-        if(turnCount == 0)
+        if(turnCount == 1)
         {
             int[] slanderers41 = {412};
             int[] politicians20 = {201};
@@ -121,13 +121,13 @@ public strictfp class RobotPlayer {
         Make 10 Muckrakers with 10 Influence (103)*/
         else if(turnCount == 30)
         {
-            int[] slanderers81 = {852};
+            int[] slanderers85 = {852};
             int[] muckrakers10 = {103};
 
             resizeFromList(201,19);
 
             Units.add(resizeArray(muckrakers10, 11));
-            Units.add(resizeArray(slanderers81, 6));
+            Units.add(resizeArray(slanderers85, 6));
         }
         /*Slanderers making 50 influence per round
         5 Slanderers with 230 Influence each (2302)
