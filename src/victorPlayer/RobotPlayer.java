@@ -180,7 +180,7 @@ public strictfp class RobotPlayer {
     
     
     //first this method moves the robot and then if it is on a square that is deemed good to protect then it switches protecting to true
-    
+    //NOT IN THE ACTUAL CODE
     static boolean afterMovedIsProtecting() throws GameActionException
     {
     	
@@ -238,7 +238,7 @@ public strictfp class RobotPlayer {
     
     static void findDestination() throws GameActionException
     {
-    	int random = (int) (Math.random()*8);
+    	//int random = (int) (Math.random()*8);
     	
     	RobotInfo[] nearby = rc.senseNearbyRobots(2);
     	if(nearby.length == 0)
@@ -258,12 +258,69 @@ public strictfp class RobotPlayer {
     		{
     			options.add(nearby[i].getLocation());
     		}
-    		int optionsRandom = (int)(Math.random()*options.size());
-    		center = options.get(optionsRandom);
+    		
+    		
+    	}
+    	System.out.println("OPTIONS SIZE IS " + options.size());
+    	int optionsRandom = (int)(Math.random()*options.size());
+		center = options.get(optionsRandom);
+    	
+    	MapLocation nw = center.add(Direction.NORTHWEST).add(Direction.NORTHWEST);
+    	MapLocation n = center.add(Direction.NORTH).add(Direction.NORTH);
+    	MapLocation ne = center.add(Direction.NORTHEAST).add(Direction.NORTHEAST);
+    	MapLocation e = center.add(Direction.EAST).add(Direction.EAST);
+    	MapLocation se = center.add(Direction.SOUTHEAST).add(Direction.SOUTHEAST);
+    	MapLocation s = center.add(Direction.SOUTH).add(Direction.SOUTH);
+    	MapLocation sw = center.add(Direction.SOUTHWEST).add(Direction.SOUTHWEST);
+    	MapLocation w = center.add(Direction.WEST).add(Direction.WEST);
+    	
+    	MapLocation[] mapSquares = {nw, n, ne, e, se, s, sw, w};
+    	int[] booleanmapSquares = new int[8];
+    	
+    	//0 is location is occupied, 1 is location is empty, 2 is if location is not on the map
+    	
+    	for(int i = 0; i < 8; i++)
+    	{
+    		
+    		if(!rc.onTheMap(mapSquares[i]))
+    		{
+    			booleanmapSquares[i] = 2;
+    		}
+    		else if(rc.isLocationOccupied(mapSquares[i]))
+    		{
+    			booleanmapSquares[i] = 0;
+    		}
+    		else
+    		{
+    			booleanmapSquares[i] = 1;
+    		}
     	}
     	
+    	ArrayList<MapLocation> availableLocations = new ArrayList<MapLocation>();
+    	ArrayList<MapLocation> locationsOnTheMap = new ArrayList<MapLocation>();
     	
-    	switch (random)
+    	
+    	
+    	for(int i = 0; i < 8; i++)
+    	{
+    		if(booleanmapSquares[i] == 1)
+    			availableLocations.add(mapSquares[i]);
+    		if(booleanmapSquares[i] != 2)
+    			locationsOnTheMap.add(mapSquares[i]);
+    	}
+    	
+    	if(availableLocations.size() > 0)
+    	{
+    		int random = (int)(Math.random()*availableLocations.size());
+    		destination = availableLocations.get(random);
+    	}
+    	else
+    	{
+    		int random = (int)(Math.random()*locationsOnTheMap.size());
+    		destination = locationsOnTheMap.get(random);
+    	}
+    	
+    	/*switch (random)
     	{
     		case 0: 
     			System.out.println("THIS IS 0");
@@ -305,7 +362,7 @@ public strictfp class RobotPlayer {
     			destination = center.add(Direction.WEST);
     			destination = destination.add(Direction.WEST);
     			break;
-    	}
+    	}*/
     	
     	hasDestination = true;
     	
@@ -343,11 +400,14 @@ public strictfp class RobotPlayer {
     	
     	if(!rc.canMove(toGo) && rc.getFlag(id) != 1)
     	{
-    		Direction[] options = {toGo.rotateLeft(), toGo.rotateRight()};
+    		Direction[] options = {toGo.rotateLeft(), toGo.rotateRight(), toGo.rotateLeft().rotateLeft(), toGo.rotateRight().rotateRight(), toGo.rotateLeft().rotateLeft().rotateLeft(), toGo.rotateRight().rotateRight().rotateRight()};
     		for (Direction a: options)
     		{
     			if(rc.canMove(a))
+    			{
     				rc.move(a);
+    				break;
+    			}
     		}
     		
     	}
@@ -367,6 +427,17 @@ public strictfp class RobotPlayer {
      * 		The blank spaces are spaces where the robots are freely able to move around to try to find corner squares
      * 		The corner squares allow a robot to choose which square to protect
      */
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    //THIS METHOD IS NOT USED
     static boolean onCorner() throws GameActionException
     {
     	//currently there is a small bug where if a robot is stopped on a non corner square, it will think that robot is on a corner square
@@ -407,7 +478,7 @@ public strictfp class RobotPlayer {
     		if(robotSW.getType().equals(rc.getType()) || robotSW.getType().equals(RobotType.ENLIGHTENMENT_CENTER))
     			return true;
     	}
-    /*	if(!rc.canMove(Direction.NORTHEAST) || !rc.canMove(Direction.NORTHWEST) || !rc.canMove(Direction.SOUTHEAST) || !rc.canMove(Direction.SOUTHWEST))
+    	/*if(!rc.canMove(Direction.NORTHEAST) || !rc.canMove(Direction.NORTHWEST) || !rc.canMove(Direction.SOUTHEAST) || !rc.canMove(Direction.SOUTHWEST))
     		return true;*/
     	return false;
     }
