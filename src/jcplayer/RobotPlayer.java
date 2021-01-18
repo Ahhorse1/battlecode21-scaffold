@@ -27,6 +27,17 @@ public strictfp class RobotPlayer {
 	static ArrayList<Integer> createdPoliticiansID = new ArrayList<Integer>();
 	static ArrayList<Integer> createdSlanderersID = new ArrayList<Integer>();
 	static ArrayList<Integer> createdMuckrakersID = new ArrayList<Integer>();
+	
+    /*Stores what needs to be built
+    They should be added in as influence*10 + type, where slanderer = 1, politician = 2, muckraker =3
+    -Winston */
+	 static ArrayList<Integer> toBeConstructed = new ArrayList<Integer>();
+	
+	 //Stores the previous round's number of created units and influence
+	 static int previousPolitician;
+	 static int previousSlanderer;
+	 static int previousMuckrakers;
+	 static int previousInfluence;
 
 	// Store ID of the enlightenment center that created you
 	static int enlightenmentCenterID;
@@ -215,167 +226,240 @@ public strictfp class RobotPlayer {
 			return false;
 	}
 
-	static void Stage1(RobotController rc) throws GameActionException {
-		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(40, rc.getTeam());
-		int nearbySlanderers = 0;
-		int nearbyPoliticians = 0;
-		for (int i = 0; i < nearbyRobots.length; i++) {
-			if (nearbyRobots[i].type.equals(RobotType.SLANDERER))
-				if (nearbyRobots[i].influence == 20)
-					nearbySlanderers++;
-			if (nearbyRobots[i].type.equals(RobotType.POLITICIAN))
-				if (nearbyRobots[i].influence > 40)
-					nearbyPoliticians++;
-		}
-		if (rc.isReady()) {
-			if (nearbySlanderers < 2) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.SLANDERER, dir, 20)) {
-						rc.buildRobot(RobotType.SLANDERER, dir, 20);
-						System.out.println("Built Slanderer");
-					}
-				}
-			} else if (nearbyPoliticians < 1) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.POLITICIAN, dir, 50)) {
-						rc.buildRobot(RobotType.POLITICIAN, dir, 50);
-						rc.setFlag(2685);
-						System.out.println("Built Politician");
-					}
-				}
-			}
-			if (turnCount % 2 == 0) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 11)) {
-						rc.buildRobot(RobotType.MUCKRAKER, dir, 11);
-						System.out.println("Built Muckraker");
-					}
-				}
-			} else {
-				if (rc.canBid(5)) {
-					rc.bid(5);
-					System.out.println("Bidded for Vote");
-				}
-			}
+	
+	/*
+    Runs Stage One of the Strategy:
+        3 Slanderer - 41 Influence (Total 123 Influence, 2 initially and 3rd is staggered)
+        1 Politician - 25 Influence
+        3 Politicians - 11 Influence
+        Bidding 1 for vote
+        - Winston */
+    static void runStageOne() throws GameActionException {
+        if (createdMuckrakersID.size() < previousMuckrakers) {
+            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
+                toBeConstructed.add(0, 13);
+            }
+        }
+        if (createdSlanderersID.size() < previousSlanderer) {
+            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
+                toBeConstructed.add(0, 411);
+            }
+        }
+        if (createdPoliticiansID.size() < previousPolitician) {
+            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
+                toBeConstructed.add(0, 202);
+            }
+        }
+        if (rc.isReady())
+        {
+         if (toBeConstructed.size() == 0) {
+                if (rc.canBid(1)) {
+                   rc.bid(1);
+             }
+         }
+         else if (canConstruct()) {
+             construct();
+            }
+        }
+        setPrevious();
+    }
+    static void runStageTwo() throws GameActionException {
+        if (createdMuckrakersID.size() < previousMuckrakers) {
+            for (int i = 0; i < previousMuckrakers - createdMuckrakersID.size(); i++) {
+                toBeConstructed.add(0, 13);
+            }
+        }
+        if (createdSlanderersID.size() < previousSlanderer) {
+            for (int i = 0; i < previousSlanderer - createdSlanderersID.size(); i++) {
+                toBeConstructed.add(0, 411);
+            }
+        }
+        if (createdPoliticiansID.size() < previousPolitician) {
+            for (int i = 0; i < previousPolitician - createdPoliticiansID.size(); i++) {
+                toBeConstructed.add(0, 202);
+            }
+        }
+        if (rc.isReady())
+        {
 
-		}
-	}
+            if (canConstruct()) {
+                construct();
+            }
+            else if (toBeConstructed.size() == 0)
+            {
+                if(turnCount%4 == 1 || turnCount%4 == 3) {
+                    int influenceDifference = rc.getInfluence() - previousInfluence;
+                    if (rc.canBid(influenceDifference)) {
+                        rc.bid(influenceDifference);
+                    }
+                }
+                else
+                {
+                    toBeConstructed.add(13);
+                    construct();
+                }
+            }
 
-	static void Stage2(RobotController rc) throws GameActionException {
-		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(40, rc.getTeam());
-		int nearbySlanderers = 0;
-		int nearbyPoliticians = 0;
-		for (int i = 0; i < nearbyRobots.length; i++) {
-			if (nearbyRobots[i].type.equals(RobotType.SLANDERER))
-				if (nearbyRobots[i].influence == 20)
-					nearbySlanderers++;
-			if (nearbyRobots[i].type.equals(RobotType.POLITICIAN))
-				if (nearbyRobots[i].influence > 40)
-					nearbyPoliticians++;
-		}
-		if (rc.isReady()) {
-			if (nearbySlanderers < 10) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.SLANDERER, dir, 40)) {
-						rc.buildRobot(RobotType.SLANDERER, dir, 40);
-						System.out.println("Built Slanderer");
-					}
-				}
-			} else if (nearbyPoliticians < 3) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.POLITICIAN, dir, 100)) {
-						rc.buildRobot(RobotType.POLITICIAN, dir, 100);
-						rc.setFlag(2685);
-						System.out.println("Built Politician");
-					}
-				}
-			}
-			if (turnCount % 2 == 0) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 11)) {
-						rc.buildRobot(RobotType.MUCKRAKER, dir, 11);
-						System.out.println("Built Muckraker");
-					}
-				}
-			} else {
-				if (rc.canBid(10)) {
-					rc.bid(10);
-					System.out.println("Bidded for Vote");
-				}
-			}
-		}
+        }
+        setPrevious();
+    }
+    
+    /* Sets all the previous variables to current round settings.
+    * To be used right before moving onto the next round*/
+    static void setPrevious()
+    {
+        previousPolitician = createdPoliticiansID.size();
+        previousMuckrakers = createdMuckrakersID.size();
+        previousSlanderer = createdSlanderersID.size();
+        previousInfluence = rc.getInfluence();
+    }
+    /* Builds units according to the ArrayList toBeConstructed
 
-	}
+     */
+    static void construct() throws GameActionException
+    {
+        int code = toBeConstructed.get(0);
+        int influence = code/10;
+        RobotType toBuild;
+        if(code%10 == 1)
+        {
+            toBuild = RobotType.SLANDERER;
+            System.out.println("CHECKED SLANDERER: " + code);
+        }
+        else if(code%10 == 2)
+        {
+            toBuild = RobotType.POLITICIAN;
+            System.out.println("CHECKED POLITICIAN: " + code);
+        }
+        else
+        {
+            toBuild = RobotType.MUCKRAKER;
+            System.out.println("CHECKED MUCKRAKER: " + code);
+        }
+        for (Direction dir : directions) {
+            if (rc.canBuildRobot(toBuild, dir, influence))
+            {
+                System.out.println("BUILT");
+                rc.buildRobot(toBuild, dir, influence);
+                toBeConstructed.remove(0);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    /*Tells you if you can construct the unit on top of the stack*/
 
-	static void Stage3(RobotController rc) throws GameActionException {
-		RobotInfo[] nearbyRobots = rc.senseNearbyRobots(40, rc.getTeam());
-		int nearbySlanderers = 0;
-		int nearbyPoliticians = 0;
-		for (int i = 0; i < nearbyRobots.length; i++) {
-			if (nearbyRobots[i].type.equals(RobotType.SLANDERER))
-				if (nearbyRobots[i].influence == 20)
-					nearbySlanderers++;
-			if (nearbyRobots[i].type.equals(RobotType.POLITICIAN))
-				if (nearbyRobots[i].influence > 40)
-					nearbyPoliticians++;
-		}
-		if (rc.isReady()) {
-			if (nearbySlanderers < 20) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.SLANDERER, dir, 40)) {
-						rc.buildRobot(RobotType.SLANDERER, dir, 40);
-						System.out.println("Built Slanderer");
-					}
-				}
-			} else if (nearbyPoliticians < 5) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.POLITICIAN, dir, 100)) {
-						rc.buildRobot(RobotType.POLITICIAN, dir, 100);
-						rc.setFlag(2685);
-						System.out.println("Built Politician");
-					}
-				}
-			}
-			if (turnCount % 2 == 0) {
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 20)) {
-						rc.buildRobot(RobotType.MUCKRAKER, dir, 20);
-						System.out.println("Built Muckraker");
-					}
-				}
-			} else {
-				if (rc.canBid(25)) {
-					rc.bid(25);
-					System.out.println("Bidded for Vote");
-				}
-			}
-		}
+    static boolean canConstruct() throws GameActionException
+    {
+        if(toBeConstructed.size() == 0)
+        {
+            return false;
+        }
+        int code = toBeConstructed.get(0);
+        int influence = code/10;
+        RobotType toBuild;
+        if(code%10 == 1)
+        {
+            toBuild = RobotType.SLANDERER;
+        }
+        if(code%10 == 2)
+        {
+            toBuild = RobotType.POLITICIAN;
+        }
+        else
+        {
+            toBuild = RobotType.MUCKRAKER;
+        }
+        for (Direction dir : directions) {
+            if (rc.canBuildRobot(toBuild, dir, influence)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     *To be run as an enlightenment center
+     * Also updates slanderers to politicians in the local list
+     * Returns integer array of first the cnt, and then the direction of the first slanderer detected
+     * @param type The type of robot to be counted
+     *-Ben
+     */
+    static int[] getCntUnit(RobotType type) throws GameActionException{
+        int cnt=0;
+        int dir=0;
+        switch(type) {
+            case POLITICIAN:
+                for (int id : createdPoliticiansID)
+                    if (rc.canGetFlag(id))//canGetFlag is used as a proxy for whether it exists
+                        cnt++;
+            case SLANDERER:
+                for (int x=0;x<createdSlanderersID.size();x++) {
+                    int id=createdSlanderersID.get(x);
+                    if (rc.canGetFlag(id))
+                        if (rc.canSenseRobot(id)&&rc.senseRobot(id).getType().equals(RobotType.SLANDERER)) {
+                            cnt++;
+                            if(rc.getFlag(id)>=11&&rc.getFlag(id)<=14){
+                                if(rc.getFlag(rc.getID())%10==0){//We find direction of slanderer if we haven't set one yet
+                                    dir=rc.getFlag(id)%10;
+                                }
+                            }
+                        }
+                        else { //Ensure that slanderer hasn't changed to a politician and update
+                            createdSlanderersID.remove(x);
+                            createdPoliticiansID.add(id);
+                        }
+                }
+            case MUCKRAKER:
+                for (int id : createdMuckrakersID)
+                    if (rc.canGetFlag(id))
+                        cnt++;
 
-	}
+        }
+        int[] ret={cnt,dir};
+        return ret;
 
-	static void Normal(RobotController rc) throws GameActionException {
-		if (rc.isReady()) {
+    }
 
-			if (turnCount % 2 == 0) {
-				int bidAmount = 50;
-				bidAmount = bidAmount * turnCount / 200;
-				if (rc.canBid(bidAmount)) {
-					rc.bid(bidAmount);
-					System.out.println("Bidded for Vote");
-				}
-			} else {
-				RobotType toBuild = randomSpawnableRobotType();
-				int influence = 25;
-				if (toBuild.equals(RobotType.POLITICIAN))
-					influence = 50;
-				for (Direction dir : directions) {
-					if (rc.canBuildRobot(toBuild, dir, influence))
-						rc.buildRobot(toBuild, dir, influence);
-				}
-			}
-		}
-	}
+    /**
+     *Outputs what we want the enlightenment center flag to be
+     * @param p politician cnt
+     * @param s slanderer cnt
+     * @param m muckracker cnt
+     *  2^24=1 67 77 21 6
+     *          p  s  m  dir
+     * @param dir 1 means top left, 2 top right, 3 bottom right, 4 bottom left
+     *-Ben
+     */
+    static int getEnlFlag(int p, int s, int m, int dir) throws GameActionException{
+        int flg=0;
+        flg+=p*100000;
+        flg+=s*100;
+        flg+=m*10;
+        flg+=dir;
+        if(rc.canSetFlag(flg))//Could theoretically be removed after testing
+            return flg;
+        return 0;
 
+    }
+
+
+    /**Code for non-enlightenment center units
+     * Finds the ID of the enlightenment center that created it and sets that to a proper number
+     * -Ben
+     */
+    static void firstTurn(){
+        RobotInfo[] nearby=rc.senseNearbyRobots(2,rc.getTeam());
+        for(RobotInfo r : nearby){
+            if(r.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){
+                enlightenmentCenterID=r.getID();
+                return;
+            }
+
+        }
+    }
+    
 	static void findCorner(RobotController rc) throws GameActionException {
 		MapLocation currentLoc = rc.getLocation();
 		boolean isAtCorner = false;
