@@ -116,9 +116,9 @@ public strictfp class RobotPlayer {
         {
             int[] slanderers41 = {412};
             int[] politicians20 = {201};
-            int[] politicians1 = {11};
+            int[] muckrakers1 = {13};
 
-            Units.add(resizeArray(politicians1, 5));
+            Units.add(resizeArray(muckrakers1, 5));
             Units.add(resizeArray(politicians20, 4));
             Units.add(resizeArray(slanderers41,4));
 
@@ -131,13 +131,13 @@ public strictfp class RobotPlayer {
         Make 10 Muckrakers with 10 Influence (103)*/
         else if(turnCount == 30)
         {
-            int[] slanderers85 = {852};
-            int[] muckrakers10 = {103};
+            int[] slanderers85 = {1702};
+            int[] muckrakers10 = {203};
 
-            resizeFromList(201,19);
+            resizeFromList(201,11);
 
-            Units.add(resizeArray(muckrakers10, 11));
-            Units.add(resizeArray(slanderers85, 6));
+            Units.add(1,resizeArray(muckrakers10, 6));
+            Units.add(resizeArray(slanderers85, 4));
         }
         /*Slanderers making 50 influence per round
         5 Slanderers with 230 Influence each (2302)
@@ -148,9 +148,9 @@ public strictfp class RobotPlayer {
         Make 10 Muckrakers with 50 Influence each (503)*/
         else if(turnCount == 165)
         {
-            int[] slanderers230 = {2302};
-            int[] politicians80 = {810};
-            int[] muckrakers50 = {503};
+            int[] slanderers230 = {4602};
+            int[] politicians80 = {1601};
+            int[] muckrakers50 = {1003};
 
             for(int i = 0; i<Units.size(); i++)
             {
@@ -163,9 +163,9 @@ public strictfp class RobotPlayer {
                 }
             }
 
-            Units.add(resizeArray(muckrakers50, 11));
-            Units.add(resizeArray(politicians80, 11));
-            Units.add(resizeArray(slanderers230, 6));
+            Units.add(resizeArray(muckrakers50, 6));
+            Units.add(resizeArray(politicians80, 6));
+            Units.add(resizeArray(slanderers230, 4));
 
         }
         /*Slanderers making 200 influence per round
@@ -178,13 +178,13 @@ public strictfp class RobotPlayer {
         else if(turnCount == 360)
         {
             int[] slanderers1498 = {14982};
-            int[] muckrakers100 = {1003};
+            int[] muckrakers100 = {2003};
             int[] politicians400 = {4001};
-            int[] politicians100 = {1001};
+            int[] politicians100 = {2001};
 
-            Units.add(resizeArray(muckrakers100, 11));
-            Units.add(resizeArray(politicians100, 30));
-            Units.add(resizeArray(politicians400, 21));
+            Units.add(resizeArray(muckrakers100, 6));
+            Units.add(resizeArray(politicians100, 16));
+            Units.add(resizeArray(politicians400, 11));
             Units.add(resizeArray(slanderers1498, 6));
         }
         /*Make 10 Muckrakers with 100 Influence Each
@@ -212,13 +212,7 @@ public strictfp class RobotPlayer {
             runStageOne();
         }
     }
-    /*
-    Runs Stage One of the Strategy:
-        3 Slanderer - 41 Influence (Total 123 Influence, 2 initially and 3rd is staggered)
-        1 Politician - 25 Influence
-        3 Politicians - 11 Influence
-        Bidding 1 for vote
-        - Winston */
+
     static void runStageOne() throws GameActionException {
         replace();
         Boolean stop = true;
@@ -228,9 +222,11 @@ public strictfp class RobotPlayer {
         }
         if(!stop)
         {
+            System.out.println("trying to bid");
             int previousIncome = rc.getInfluence() - previousInfluence;
             if(rc.canBid((int)(previousIncome*1.5)))
             {
+                System.out.println("bid");
                 rc.bid((int)(previousIncome*1.5));
             }
         }
@@ -238,22 +234,17 @@ public strictfp class RobotPlayer {
     }
      static void runStageTwo() throws GameActionException
      {
-         replace();
-         Boolean stop = true;
          if(rc.isReady())
-         {
-             stop = buildUnits();
-         }
-         if(!stop)
          {
             if(modeCount[0] == 1)
             {
+                System.out.println("Mode Count 1");
                 if(canConstruct(RobotType.MUCKRAKER, 100))
                 {
                     construct(RobotType.MUCKRAKER, 100);
                     modeCount[1]++;
                 }
-                if(modeCount[1] >= 15)
+                if(modeCount[1] >= 10)
                 {
                     modeCount[0] = 2;
                     modeCount[1] = 0;
@@ -261,12 +252,13 @@ public strictfp class RobotPlayer {
             }
             else if(modeCount[0] == 2)
             {
+                System.out.println("Mode Count 2");
                 if(canConstruct(RobotType.POLITICIAN, 100))
                 {
                     construct(RobotType.POLITICIAN, 100);
                     modeCount[1]++;
                 }
-                if(modeCount[1] >= 15)
+                if(modeCount[1] >= 10)
                 {
                     modeCount[0] = 3;
                     modeCount[1] = 0;
@@ -274,12 +266,28 @@ public strictfp class RobotPlayer {
             }
             else if(modeCount[0] == 3)
             {
+                System.out.println("Mode Count 3");
                 if(rc.canBid(100))
                 {
                     rc.bid(100);
                     modeCount[1]++;
                 }
-                if(modeCount[1] >= 15)
+                if(modeCount[1] >= 20)
+                {
+                    modeCount[0] = 1;
+                    modeCount[1] = 0;
+                }
+            }
+            else if(modeCount[0] == 4)
+            {
+                Boolean a = buildUnits();
+                modeCount[1]++;
+                if(!a)
+                {
+                    modeCount[0] = 1;
+                    modeCount[1] = 0;
+                }
+                else if(modeCount[1] >= 40)
                 {
                     modeCount[0] = 1;
                     modeCount[1] = 0;
@@ -305,7 +313,12 @@ public strictfp class RobotPlayer {
              if(x != -1)
              {
                  int y = Units.get(i)[0]%10;
-                 if(y == 1)
+                 if(Units.get(i)[0] == 13)
+                 {
+                     runCorner(rc);
+                     break;
+                 }
+                 else if(y == 1)
                  {
                      toBuild = RobotType.POLITICIAN;
                  }
@@ -330,6 +343,7 @@ public strictfp class RobotPlayer {
                  }
              }
          }
+         System.out.println("full");
          return false;
      }
 
@@ -343,9 +357,6 @@ public strictfp class RobotPlayer {
             // System.out.println("empowered");
             return;
         }
-
-
-
 
         //currently this is only running for politicians but definitely add more once everything is combined together
 
@@ -362,14 +373,102 @@ public strictfp class RobotPlayer {
     }
 
     static void runSlanderer() throws GameActionException {
-        if (turnCount >= 50) {
-            rc.setFlag(10);
+        if(turnCount==1)
+            firstTurn();
+
+        if(!rc.isReady())
+            return;
+
+        int ECFlag=decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
+        int cornerNum = 0;
+        if(ECFlag>=20&&ECFlag<=23)
+            cornerNum=ECFlag;
+        else
+            cornerNum=decodeFlag(rc.getFlag(rc.getID()))[3];
+        if(cornerNum>=20&&cornerNum<=23) {
+            switch (cornerNum) {
+                case 20:
+                    if (rc.canMove(Direction.NORTHWEST)) {
+                        rc.move(Direction.NORTHWEST);
+                        return;
+                    } else if (rc.canMove(Direction.NORTH)) {
+                        rc.move(Direction.NORTH);
+                        return;
+                    } else if (rc.canMove(Direction.WEST)) {
+                        rc.move(Direction.WEST);
+                        return;
+                    }
+                    break;
+                case 21:
+                    if (rc.canMove(Direction.NORTHEAST)) {
+                        rc.move(Direction.NORTHEAST);
+                        return;
+                    } else if (rc.canMove(Direction.NORTH)) {
+                        rc.move(Direction.NORTH);
+                        return;
+                    } else if (rc.canMove(Direction.EAST)) {
+                        rc.move(Direction.EAST);
+                        return;
+                    }
+
+                    break;
+                case 22:
+                    if (rc.canMove(Direction.SOUTHEAST)) {
+                        rc.move(Direction.SOUTHEAST);
+                        return;
+                    } else if (rc.canMove(Direction.SOUTH)) {
+                        rc.move(Direction.SOUTH);
+                        return;
+                    } else if (rc.canMove(Direction.EAST)) {
+                        rc.move(Direction.EAST);
+                        return;
+                    }
+                    break;
+                case 23:
+                    if (rc.canMove(Direction.SOUTHWEST)) {
+                        rc.move(Direction.SOUTHWEST);
+                        return;
+                    } else if (rc.canMove(Direction.SOUTH)) {
+                        rc.move(Direction.SOUTH);
+                        return;
+                    } else if (rc.canMove(Direction.WEST)) {
+                        rc.move(Direction.WEST);
+                        return;
+                    }
+                    break;
+            }
         }
-      tryMove(randomDirection());
-            //System.out.println("I moved!");
+        else
+        {
+            tryMove(randomDirection());
+        }
+
+
+
+//Try moving randomly
     }
 
     static void runMuckraker() throws GameActionException {
+        if(turnCount==1)
+            firstTurn();//Will set enlightenmentCenterID
+        if(turnCount==1){
+            int[] ECFlag=decodeFlag(rc.getFlag(enlightenmentCenterID));
+            switch(ECFlag[3]){
+                case 20:
+                    break;
+                    //Whatever
+                case 21:
+                    break;
+                    //Whatever
+                case 22:
+                    break;
+                    //Whatever
+                case 23:
+                    break;
+                    //Whatever
+
+            }
+        }
         MapLocation currentLoc = rc.getLocation();
         if (rc.getFlag(rc.getID()) == 0) {
             for (Direction dir : directions) {
@@ -393,7 +492,6 @@ public strictfp class RobotPlayer {
                                 rc.setFlag(4000000);
                                 break;
                         }
-
                     }
                 }
             }
@@ -641,9 +739,9 @@ public strictfp class RobotPlayer {
     static void findCorner(RobotController rc) throws GameActionException {
         MapLocation currentLoc = rc.getLocation();
         boolean isAtCorner = false;
-        int flag = rc.getFlag(rc.getID());
-        switch (flag / 1000000) {
-            case 1:
+        int cornerNum=decodeFlag(rc.getFlag(rc.getID()))[3];
+        switch (cornerNum) {
+            case 20:
                 if (rc.canMove(Direction.NORTHWEST)) {
                     rc.move(Direction.NORTHWEST);
                     return;
@@ -682,7 +780,7 @@ public strictfp class RobotPlayer {
                     }
                 }
                 break;
-            case 2:
+            case 21:
                 if (rc.canMove(Direction.NORTHEAST)) {
                     rc.move(Direction.NORTHEAST);
                     return;
@@ -721,7 +819,7 @@ public strictfp class RobotPlayer {
                     }
                 }
                 break;
-            case 3:
+            case 22:
                 if (rc.canMove(Direction.SOUTHEAST)) {
                     rc.move(Direction.SOUTHEAST);
                     return;
@@ -760,7 +858,7 @@ public strictfp class RobotPlayer {
                     }
                 }
                 break;
-            case 4:
+            case 23:
                 if (rc.canMove(Direction.SOUTHWEST)) {
                     rc.move(Direction.SOUTHWEST);
                     return;
@@ -801,40 +899,29 @@ public strictfp class RobotPlayer {
                 break;
         }
         if (isAtCorner) {
-            flag += 10000000;
-            int differenceX = currentLoc.x - ecLoc.x;
-            int differenceY = currentLoc.y - ecLoc.y;
-            if (differenceX < 0) {
-                flag += 100000;
-                flag += Math.abs(differenceX) * 1000;
-            } else
-                flag += Math.abs(differenceX) * 1000;
-            if (differenceY < 0) {
-                flag += 100;
-                flag += Math.abs(differenceY);
-            } else
-                flag += Math.abs(differenceY);
-            rc.setFlag(flag);
+            cornerNum=decodeFlag(rc.getFlag(rc.getID()))[3];
+            rc.setFlag(encodeFlag(6,currentLoc,cornerNum));
         }
     }
 
-    static boolean isCornerRunner(RobotController rc) throws GameActionException {
-        // checks Robot Flag's to see if it is a corner runner
-        int flag = rc.getFlag(rc.getID());
-        boolean isCornerRunner = false;
-        if (flag / 1000000 > 0)
-            isCornerRunner = true;
-        return isCornerRunner;
+    static boolean isCornerRunner(RobotController rc) throws GameActionException
+    {
+        int mission=decodeFlag(rc.getFlag(rc.getID()))[3];
+        if(mission>=20&&mission<=23)
+            return true;
+        return false;
+
     }
 
     static int runCorner(RobotController rc) throws GameActionException {
         int flag = rc.getFlag(rc.getID());
         for (int i = 0; i < cornerRunnerIDs.length; i++) {
             if (rc.canGetFlag(cornerRunnerIDs[i])) {
-                int tempFlag = rc.getFlag(cornerRunnerIDs[i]);
-                if ((tempFlag / 10000000) == 1) {
+                int[] tempFlag=decodeFlag(rc.getFlag(cornerRunnerIDs[i]));
+                if(tempFlag[0]==6)//corner has been found
+                {
                     atCorner[i] = true;
-                    mapCorners[i] = getCornerLocation(rc, tempFlag);
+                    mapCorners[i]=getMapLocation(tempFlag[1],tempFlag[2]);
                 }
             } else {
                 makeCornerRunner[i] = true;
@@ -843,11 +930,11 @@ public strictfp class RobotPlayer {
         for (int i = 0; i < makeCornerRunner.length; i++) {
             if (makeCornerRunner[i]) {
                 for (Direction dir : directions) {
-                    if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 20)) {
-                        rc.buildRobot(RobotType.MUCKRAKER, dir, 20);
+                    if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 10)) {
+                        rc.buildRobot(RobotType.MUCKRAKER, dir, 10);
                         System.out.println("Built CornerRunner");
                         makeCornerRunner[i] = false;
-                        flag = i;
+                        rc.setFlag(encodeFlag(0,0,0,i+20));
                         cornerRunnerIDs[i] = rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID();
                         break;
                     }
@@ -860,16 +947,10 @@ public strictfp class RobotPlayer {
             if (atCorner[i])
                 tempCounter++;
         }
-        if (tempCounter == 4) {
+        if (tempCounter >= 2) {
             runCorner = false;
-            System.out.println("Corners have been found!");
-            System.out.println("Northwest Corner " + mapCorners[0].x + "," + mapCorners[0].y);
-            System.out.println("Northeast Corner " + mapCorners[1].x + "," + mapCorners[1].y);
-            System.out.println("Southeast Corner " + mapCorners[2].x + "," + mapCorners[2].y);
-            System.out.println("Southwest Corner " + mapCorners[3].x + "," + mapCorners[3].y);
-            closestCorner = closestCorner(rc, mapCorners);
-            System.out.println("Closest Corner + " + closestCorner.x + "," + closestCorner.y);
-
+            int closestCorner=closestCorner(mapCorners);
+            rc.setFlag(encodeFlag(6,mapCorners[closestCorner].x%128,mapCorners[closestCorner].y%128,closestCorner+20));
         }
         return flag;
     }
@@ -890,17 +971,22 @@ public strictfp class RobotPlayer {
         return corner;
     }
 
-    static MapLocation closestCorner(RobotController rc, MapLocation[] corners) {
+    static int closestCorner(MapLocation[] corners) {
         MapLocation currentLoc = rc.getLocation();
         MapLocation cornerLoc = rc.getLocation();
         int cornerDis = 10000;
-        for(MapLocation temp : corners) {
-            if(currentLoc.distanceSquaredTo(temp) < cornerDis) {
-                cornerLoc = temp;
-                cornerDis = currentLoc.distanceSquaredTo(temp);
+        int finalDir = 0;
+        for(int i = 0; i < corners.length; i++){
+            if(corners[i] != null){
+                MapLocation temp = corners[i];
+                if(currentLoc.distanceSquaredTo(temp) < cornerDis) {
+                    cornerLoc = temp;
+                    finalDir = i;
+                    cornerDis = currentLoc.distanceSquaredTo(temp);
+                }
             }
         }
-        return cornerLoc;
+        return finalDir;
     }
     //Goes through all arrays and checks whether the determined id can be found
     //If it can't be found, it replaces it with a -1, signalling it needs to be replaced
@@ -914,7 +1000,10 @@ public strictfp class RobotPlayer {
             {
                 for(int ii = 1; ii<Units.get(i).length; ii++)
                 {
-                    if(!rc.canGetFlag(Units.get(i)[ii]))
+                    if(Units.get(i)[ii] == 0)
+                    {
+                    }
+                    else if(!rc.canGetFlag(Units.get(i)[ii]))
                     {
                         Units.get(i)[ii] = -1;
                     }
@@ -928,7 +1017,10 @@ public strictfp class RobotPlayer {
             {
                 for(int iii = 1; iii<Units.get(i).length; iii++)
                 {
-                    if(!rc.canGetFlag(Units.get(i)[iii]))
+                    if(Units.get(i)[iii] == 0)
+                    {
+                    }
+                    else if(!rc.canGetFlag(Units.get(i)[iii]))
                     {
                         Units.get(i)[iii] = -1;
                     }
@@ -1009,7 +1101,7 @@ public strictfp class RobotPlayer {
     static MapLocation getMapLocation(int x, int y){
         MapLocation loc=rc.getLocation();
         int xDif=x - (loc.x%128);
-        int yDif=x- (loc.y%128);
+        int yDif=y - (loc.y%128);
 
         if(xDif<64 && xDif>-64)
             loc=loc.translate(xDif,0);
@@ -1019,11 +1111,9 @@ public strictfp class RobotPlayer {
         if(yDif<64 && yDif>-64)
             loc=loc.translate(0,yDif);
         else
-            loc=loc.translate(0,(-128+yDif)%64-128);
+            loc=loc.translate(0,(-128+yDif)%64);
 
         return loc;
-
-
     }
     //Finds the location of a given int within an array
     //Literally just indexOf but for an Array
