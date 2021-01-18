@@ -411,6 +411,10 @@ public strictfp class RobotPlayer {
     		}
     		
     	}
+    	if(!rc.canSenseLocation(destination))
+    	{
+    		findDestination();
+    	}
     	
     	
     	
