@@ -24,21 +24,24 @@ public strictfp class RobotPlayer {
 
     static int turnCount;
 
-    //Variables that store ID number of the created units for enlightenment centers
-    //-Ben
-    static ArrayList<Integer> createdPoliticiansID = new ArrayList<Integer>();
-    static ArrayList<Integer> createdSlanderersID = new ArrayList<Integer>();
-    static ArrayList<Integer> createdMuckrakersID = new ArrayList<Integer>();
+    //stores schema of the communications and how much to shift each n-1 parameter
+    static int[] schema = {4,7,7,6};
+    static int[] shift= {schema[1]+schema[2]+schema[3],schema[2]+schema[3],schema[3]};
 
     //Arraylist of arrays
     //Each array is +1 size larger than it's supposed to be, with the unit code in the 0 position
     //The unit code being influence *10 + (1/2/3) for (politicians/slanderers/muckrakers)
     static ArrayList<int[]> Units = new ArrayList<int[]>();
 
-    /*Stores what needs to be built
-      They should be added in as influence*10 + type, where slanderer = 1, politician = 2, muckraker =3
-      -Winston */
-    static ArrayList<Integer> toBeConstructed = new ArrayList<Integer>();
+    // Variables that store Location of Enlightenment Center that created the robot
+    static MapLocation ecLoc;
+
+    static MapLocation[] mapCorners = new MapLocation[4];
+    static int[] cornerRunnerIDs = new int[4];
+    static boolean[] makeCornerRunner = { true, true, true, true };
+    static boolean[] atCorner = { false, false, false, false };
+    static boolean runCorner = true;
+    static MapLocation closestCorner;
 
     //Stores the previous round's influence
     static int previousInfluence = 0;
@@ -47,6 +50,12 @@ public strictfp class RobotPlayer {
     //Each mode lasts for 15 actions
     //1 = muckrakers, 2 = politicians, 3 = bidding
     static int[] modeCount = new int[2];
+
+    //protecting is whether or not a robot is protecting a square or not
+    static boolean protecting = false;
+    static boolean hasDestination;
+    static MapLocation destination;
+
     //Store ID of the enlightenment center that created you
     //-Ben
     static int enlightenmentCenterID;
@@ -99,6 +108,7 @@ public strictfp class RobotPlayer {
     //Things should be added in the order: muckraker, politician, slanderer for each stage
     static void runEnlightenmentCenter() throws GameActionException
     {
+        rc.setFlag(1);
         /*3 Slanderer - 41 Influence (412)
         3 Politician - 20 Influence (201)
         4 Corner Runners Politicians - 1 Influence (11) */
@@ -308,10 +318,8 @@ public strictfp class RobotPlayer {
                      toBuild = RobotType.MUCKRAKER;
                  }
                  toBuildInfluence = Units.get(i)[0]/10;
-                 System.out.println("trying to build: " + toBuild + toBuildInfluence);
                  if(canConstruct(toBuild, toBuildInfluence))
                  {
-                     System.out.println("successfully built: " + toBuild);
                      MapLocation loc = construct(toBuild, toBuildInfluence);
                      Units.get(i)[x] = rc.senseRobotAtLocation(loc).getID();
                      return true;
@@ -330,43 +338,570 @@ public strictfp class RobotPlayer {
         int actionRadius = rc.getType().actionRadiusSquared;
         RobotInfo[] attackable = rc.senseNearbyRobots(actionRadius, enemy);
         if (attackable.length != 0 && rc.canEmpower(actionRadius)) {
+            // System.out.println("empowering...");
             rc.empower(actionRadius);
+            // System.out.println("empowered");
             return;
         }
-        tryMove(randomDirection());
+
+
+
+
+        //currently this is only running for politicians but definitely add more once everything is combined together
+
+        if(rc.getFlag(rc.getID()) == 10)
+        {
+            tryMove(randomDirection());
+        }
+        else
+        {
+            latticeStructure();
+        }
+        // if (tryMove(randomDirection()))
+        //System.out.println("I moved!");
     }
 
     static void runSlanderer() throws GameActionException {
-        Team enemy = rc.getTeam().opponent();
-        int actionRadius = rc.getType().actionRadiusSquared;
-        RobotInfo[] attackable = rc.senseNearbyRobots(actionRadius, enemy);
-        RobotInfo[] neutral = rc.senseNearbyRobots(actionRadius, Team.NEUTRAL);
-        if(turnCount>= 50)
-        {
-            rc.setFlag(1);
+        if (turnCount >= 50) {
+            rc.setFlag(10);
         }
-        if ((attackable.length != 0 || neutral.length != 0) && rc.canEmpower(actionRadius)) {
-            rc.empower(actionRadius);
-            return;
-        }
-        tryMove(randomDirection());
+      tryMove(randomDirection());
+            //System.out.println("I moved!");
     }
 
     static void runMuckraker() throws GameActionException {
-        Team enemy = rc.getTeam().opponent();
-        int actionRadius = rc.getType().actionRadiusSquared;
-        for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
-            if (robot.type.canBeExposed()) {
-                // It's a slanderer... go get them!
-                if (rc.canExpose(robot.location)) {
-                    rc.expose(robot.location);
-                    return;
+        MapLocation currentLoc = rc.getLocation();
+        if (rc.getFlag(rc.getID()) == 0) {
+            for (Direction dir : directions) {
+                if (rc.senseRobotAtLocation(currentLoc.add(dir)) != null) {
+                    RobotInfo temp = rc.senseRobotAtLocation(currentLoc.add(dir));
+                    if (temp.type.equals(RobotType.ENLIGHTENMENT_CENTER)) {
+                        ecLoc = temp.location;
+                        int flag = rc.getFlag(temp.ID);
+
+                        switch (flag % 10) {
+                            case 0:
+                                rc.setFlag(1000000);
+                                break;
+                            case 1:
+                                rc.setFlag(2000000);
+                                break;
+                            case 2:
+                                rc.setFlag(3000000);
+                                break;
+                            case 3:
+                                rc.setFlag(4000000);
+                                break;
+                        }
+
+                    }
                 }
             }
         }
-        tryMove(randomDirection());
+        if (rc.isReady()) {
+            if (isCornerRunner(rc)) {
+                findCorner(rc);
+            } else {
+                Team enemy = rc.getTeam().opponent();
+                int actionRadius = rc.getType().actionRadiusSquared;
+                for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
+                    if (robot.type.canBeExposed()) {
+                        // It's a slanderer... go get them!
+                        if (rc.canExpose(robot.location)) {
+                            // System.out.println("e x p o s e d");
+                            rc.expose(robot.location);
+                            return;
+                        }
+                    }
+                }
+                tryMove(randomDirection());
+            }
+        }
+    }
+    //this method builds the lattice structure
+
+    static void latticeStructure() throws GameActionException
+    {
+        //if it is protecting then this method just makes the robot not move at all
+    	/*if(protecting)
+    	{
+    		System.out.println("I AM PROTECTING");
+    		Clock.yield();
+    	}
+    	//if not protecting then this  tries to make it protecting
+    	while(protecting == false)
+    	{
+    		protecting = afterMovedIsProtecting();
+    	}*/
+        int id = rc.getID();
+        if(hasDestination == false)
+            findDestination();
+        //System.out.println("" + destination.x + " " + destination.y);
+        traverse(destination);
     }
 
+    static void findDestination() throws GameActionException
+    {
+        //int random = (int) (Math.random()*8);
+
+        RobotInfo[] nearby = rc.senseNearbyRobots(2);
+        if(nearby.length == 0)
+        {
+           // System.out.println("NO NEARBY!!");
+        }
+        MapLocation center = rc.getLocation();
+
+        ArrayList<MapLocation> options = new ArrayList<MapLocation>();
+
+
+        for(int i = 0; i < nearby.length; i++)
+        {
+            int id = nearby[i].getID();
+            //currently 1 is if the robot is protecting something or is the enlightenment center
+            if(rc.getFlag(id) == 1)
+            {
+                options.add(nearby[i].getLocation());
+            }
+
+
+        }
+       // System.out.println("OPTIONS SIZE IS " + options.size());
+        int optionsRandom = (int)(Math.random()*options.size());
+        center = options.get(optionsRandom);
+
+        MapLocation nw = center.add(Direction.NORTHWEST).add(Direction.NORTHWEST);
+        MapLocation n = center.add(Direction.NORTH).add(Direction.NORTH);
+        MapLocation ne = center.add(Direction.NORTHEAST).add(Direction.NORTHEAST);
+        MapLocation e = center.add(Direction.EAST).add(Direction.EAST);
+        MapLocation se = center.add(Direction.SOUTHEAST).add(Direction.SOUTHEAST);
+        MapLocation s = center.add(Direction.SOUTH).add(Direction.SOUTH);
+        MapLocation sw = center.add(Direction.SOUTHWEST).add(Direction.SOUTHWEST);
+        MapLocation w = center.add(Direction.WEST).add(Direction.WEST);
+
+        MapLocation[] mapSquares = {nw, n, ne, e, se, s, sw, w};
+        int[] booleanmapSquares = new int[8];
+
+        //0 is location is occupied, 1 is location is empty, 2 is if location is not on the map
+
+        for(int i = 0; i < 8; i++)
+        {
+
+            if(!rc.onTheMap(mapSquares[i]))
+            {
+                booleanmapSquares[i] = 2;
+            }
+            else if(rc.isLocationOccupied(mapSquares[i]))
+            {
+                booleanmapSquares[i] = 0;
+            }
+            else
+            {
+                booleanmapSquares[i] = 1;
+            }
+        }
+
+        ArrayList<MapLocation> availableLocations = new ArrayList<MapLocation>();
+        ArrayList<MapLocation> locationsOnTheMap = new ArrayList<MapLocation>();
+
+
+
+        for(int i = 0; i < 8; i++)
+        {
+            if(booleanmapSquares[i] == 1)
+                availableLocations.add(mapSquares[i]);
+            if(booleanmapSquares[i] != 2)
+                locationsOnTheMap.add(mapSquares[i]);
+        }
+
+        if(availableLocations.size() > 0)
+        {
+            int random = (int)(Math.random()*availableLocations.size());
+            destination = availableLocations.get(random);
+        }
+        else
+        {
+            int random = (int)(Math.random()*locationsOnTheMap.size());
+            destination = locationsOnTheMap.get(random);
+            destination = locationsOnTheMap.get(random);
+        }
+
+    	/*switch (random)
+    	{
+    		case 0:
+    			System.out.println("THIS IS 0");
+    			destination = center.add(Direction.NORTHWEST);
+    			destination = destination.add(Direction.NORTHWEST);
+    			break;
+    		case 1:
+    			System.out.println("THIS IS 1");
+    			destination = center.add(Direction.NORTH);
+    			destination = destination.add(Direction.NORTH);
+    			break;
+    		case 2:
+    			System.out.println("THIS IS 2");
+    			destination = center.add(Direction.NORTHEAST);
+    			destination = destination.add(Direction.NORTHEAST);
+    			break;
+    		case 3:
+    			System.out.println("THIS IS 3");
+    			destination = center.add(Direction.EAST);
+    			destination = destination.add(Direction.EAST);
+    			break;
+    		case 4:
+    			System.out.println("THIS IS 4");
+    			destination = center.add(Direction.SOUTHEAST);
+    			destination = destination.add(Direction.SOUTHEAST);
+    			break;
+    		case 5:
+    			System.out.println("THIS IS 5");
+    			destination = center.add(Direction.SOUTH);
+    			destination = destination.add(Direction.SOUTH);
+    			break;
+    		case 6:
+    			System.out.println("THIS IS 6");
+    			destination = center.add(Direction.SOUTHWEST);
+    			destination = destination.add(Direction.SOUTHWEST);
+    			break;
+    		case 7:
+    			System.out.println("THIS IS 7");
+    			destination = center.add(Direction.WEST);
+    			destination = destination.add(Direction.WEST);
+    			break;
+    	}*/
+
+        hasDestination = true;
+
+    }
+
+    static void traverse(MapLocation destination) throws GameActionException
+    {
+        Direction toGo = rc.getLocation().directionTo(destination);
+        int id = rc.getID();
+        //System.out.println("THIS IS MY FLAG " + rc.getFlag(id));
+        if(rc.getFlag(id) == 1)
+        {
+            //System.out.println("YIELDING");
+            Clock.yield();
+
+        }
+        if(rc.canMove(toGo))
+        {
+            rc.move(toGo);
+
+            if(rc.getLocation().equals(destination))
+                rc.setFlag(1);
+            else
+                rc.setFlag(0);
+            Clock.yield();
+        }
+        if(rc.isLocationOccupied(destination))
+        {
+            int idOfRobotAtDestination = rc.senseRobotAtLocation(destination).getID();
+            if(!rc.canMove(toGo) && rc.getLocation().isAdjacentTo(destination) && rc.getFlag(idOfRobotAtDestination) == 1 && !rc.getLocation().equals(destination))
+            {
+
+                findDestination();
+            }
+        }
+
+        if(!rc.canMove(toGo) && rc.getFlag(id) != 1)
+        {
+            Direction[] options = {toGo.rotateLeft(), toGo.rotateRight(), toGo.rotateLeft().rotateLeft(), toGo.rotateRight().rotateRight(), toGo.rotateLeft().rotateLeft().rotateLeft(), toGo.rotateRight().rotateRight().rotateRight()};
+            for (Direction a: options)
+            {
+                if(rc.canMove(a))
+                {
+                    rc.move(a);
+                    break;
+                }
+            }
+
+        }
+        if(!rc.canSenseLocation(destination))
+        {
+            findDestination();
+        }
+
+
+
+
+    }
+
+
+    /*   Corner square is established as so:
+     * 		Pretend u is your robot and X are the available spots around it
+     * 		X   X
+     * 		  U
+     * 		X	X
+     * 		This would be considered a corner spot
+     * 		The blank spaces are spaces where the robots are freely able to move around to try to find corner squares
+     * 		The corner squares allow a robot to choose which square to protect
+     */
+
+    static void findCorner(RobotController rc) throws GameActionException {
+        MapLocation currentLoc = rc.getLocation();
+        boolean isAtCorner = false;
+        int flag = rc.getFlag(rc.getID());
+        switch (flag / 1000000) {
+            case 1:
+                if (rc.canMove(Direction.NORTHWEST)) {
+                    rc.move(Direction.NORTHWEST);
+                    return;
+                } else if (rc.canMove(Direction.NORTH)) {
+                    rc.move(Direction.NORTH);
+                    return;
+                } else if (rc.canMove(Direction.WEST)) {
+                    rc.move(Direction.WEST);
+                    return;
+                } else {
+                    MapLocation tempLoc = currentLoc;
+                    tempLoc = tempLoc.add(Direction.NORTH);
+                    tempLoc = tempLoc.add(Direction.NORTH);
+                    MapLocation tempLoc2 = currentLoc;
+                    tempLoc2 = tempLoc2.add(Direction.WEST);
+                    tempLoc = tempLoc.add(Direction.WEST);
+                    if (rc.canSenseLocation(tempLoc)) {
+                        if (rc.canMove(Direction.NORTHEAST)) {
+                            rc.move(Direction.NORTHEAST);
+                            return;
+                        } else if (rc.canMove(Direction.EAST)) {
+                            rc.move(Direction.EAST);
+                            return;
+                        }
+                    } else if (rc.canSenseLocation(tempLoc2)) {
+                        if (rc.canMove(Direction.SOUTHWEST)) {
+                            rc.move(Direction.SOUTHWEST);
+                            return;
+                        } else if (rc.canMove(Direction.SOUTH)) {
+                            rc.move(Direction.SOUTH);
+                            return;
+                        }
+                    } else {
+                        isAtCorner = true;
+                        System.out.println("At Northwest Corner");
+                    }
+                }
+                break;
+            case 2:
+                if (rc.canMove(Direction.NORTHEAST)) {
+                    rc.move(Direction.NORTHEAST);
+                    return;
+                } else if (rc.canMove(Direction.NORTH)) {
+                    rc.move(Direction.NORTH);
+                    return;
+                } else if (rc.canMove(Direction.EAST)) {
+                    rc.move(Direction.EAST);
+                    return;
+                } else {
+                    MapLocation tempLoc = currentLoc;
+                    tempLoc = tempLoc.add(Direction.NORTH);
+                    tempLoc = tempLoc.add(Direction.NORTH);
+                    MapLocation tempLoc2 = currentLoc;
+                    tempLoc2 = tempLoc2.add(Direction.EAST);
+                    tempLoc = tempLoc.add(Direction.EAST);
+                    if (rc.canSenseLocation(tempLoc)) {
+                        if (rc.canMove(Direction.NORTHWEST)) {
+                            rc.move(Direction.NORTHWEST);
+                            return;
+                        } else if (rc.canMove(Direction.WEST)) {
+                            rc.move(Direction.WEST);
+                            return;
+                        }
+                    } else if (rc.canSenseLocation(tempLoc2)) {
+                        if (rc.canMove(Direction.SOUTHEAST)) {
+                            rc.move(Direction.SOUTHEAST);
+                            return;
+                        } else if (rc.canMove(Direction.SOUTH)) {
+                            rc.move(Direction.SOUTH);
+                            return;
+                        }
+                    } else {
+                        isAtCorner = true;
+                        System.out.println("At Northeast Corner");
+                    }
+                }
+                break;
+            case 3:
+                if (rc.canMove(Direction.SOUTHEAST)) {
+                    rc.move(Direction.SOUTHEAST);
+                    return;
+                } else if (rc.canMove(Direction.SOUTH)) {
+                    rc.move(Direction.SOUTH);
+                    return;
+                } else if (rc.canMove(Direction.EAST)) {
+                    rc.move(Direction.EAST);
+                    return;
+                } else {
+                    MapLocation tempLoc = currentLoc;
+                    tempLoc = tempLoc.add(Direction.SOUTH);
+                    tempLoc = tempLoc.add(Direction.SOUTH);
+                    MapLocation tempLoc2 = currentLoc;
+                    tempLoc2 = tempLoc2.add(Direction.EAST);
+                    tempLoc = tempLoc.add(Direction.EAST);
+                    if (rc.canSenseLocation(tempLoc)) {
+                        if (rc.canMove(Direction.SOUTHWEST)) {
+                            rc.move(Direction.SOUTHWEST);
+                            return;
+                        } else if (rc.canMove(Direction.WEST)) {
+                            rc.move(Direction.WEST);
+                            return;
+                        }
+                    } else if (rc.canSenseLocation(tempLoc2)) {
+                        if (rc.canMove(Direction.NORTHEAST)) {
+                            rc.move(Direction.NORTHEAST);
+                            return;
+                        } else if (rc.canMove(Direction.NORTH)) {
+                            rc.move(Direction.NORTH);
+                            return;
+                        }
+                    } else {
+                        isAtCorner = true;
+                        System.out.println("At Southeast Corner");
+                    }
+                }
+                break;
+            case 4:
+                if (rc.canMove(Direction.SOUTHWEST)) {
+                    rc.move(Direction.SOUTHWEST);
+                    return;
+                } else if (rc.canMove(Direction.SOUTH)) {
+                    rc.move(Direction.SOUTH);
+                    return;
+                } else if (rc.canMove(Direction.WEST)) {
+                    rc.move(Direction.WEST);
+                    return;
+                } else {
+                    MapLocation tempLoc = currentLoc;
+                    tempLoc = tempLoc.add(Direction.SOUTH);
+                    tempLoc = tempLoc.add(Direction.SOUTH);
+                    MapLocation tempLoc2 = currentLoc;
+                    tempLoc2 = tempLoc2.add(Direction.WEST);
+                    tempLoc = tempLoc.add(Direction.WEST);
+                    if (rc.canSenseLocation(tempLoc)) {
+                        if (rc.canMove(Direction.SOUTHEAST)) {
+                            rc.move(Direction.SOUTHEAST);
+                            return;
+                        } else if (rc.canMove(Direction.EAST)) {
+                            rc.move(Direction.EAST);
+                            return;
+                        }
+                    } else if (rc.canSenseLocation(tempLoc2)) {
+                        if (rc.canMove(Direction.NORTHWEST)) {
+                            rc.move(Direction.NORTHWEST);
+                            return;
+                        } else if (rc.canMove(Direction.NORTH)) {
+                            rc.move(Direction.NORTH);
+                            return;
+                        }
+                    } else {
+                        isAtCorner = true;
+                        System.out.println("At Southwest Corner");
+                    }
+                }
+                break;
+        }
+        if (isAtCorner) {
+            flag += 10000000;
+            int differenceX = currentLoc.x - ecLoc.x;
+            int differenceY = currentLoc.y - ecLoc.y;
+            if (differenceX < 0) {
+                flag += 100000;
+                flag += Math.abs(differenceX) * 1000;
+            } else
+                flag += Math.abs(differenceX) * 1000;
+            if (differenceY < 0) {
+                flag += 100;
+                flag += Math.abs(differenceY);
+            } else
+                flag += Math.abs(differenceY);
+            rc.setFlag(flag);
+        }
+    }
+
+    static boolean isCornerRunner(RobotController rc) throws GameActionException {
+        // checks Robot Flag's to see if it is a corner runner
+        int flag = rc.getFlag(rc.getID());
+        boolean isCornerRunner = false;
+        if (flag / 1000000 > 0)
+            isCornerRunner = true;
+        return isCornerRunner;
+    }
+
+    static int runCorner(RobotController rc) throws GameActionException {
+        int flag = rc.getFlag(rc.getID());
+        for (int i = 0; i < cornerRunnerIDs.length; i++) {
+            if (rc.canGetFlag(cornerRunnerIDs[i])) {
+                int tempFlag = rc.getFlag(cornerRunnerIDs[i]);
+                if ((tempFlag / 10000000) == 1) {
+                    atCorner[i] = true;
+                    mapCorners[i] = getCornerLocation(rc, tempFlag);
+                }
+            } else {
+                makeCornerRunner[i] = true;
+            }
+        }
+        for (int i = 0; i < makeCornerRunner.length; i++) {
+            if (makeCornerRunner[i]) {
+                for (Direction dir : directions) {
+                    if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 20)) {
+                        rc.buildRobot(RobotType.MUCKRAKER, dir, 20);
+                        System.out.println("Built CornerRunner");
+                        makeCornerRunner[i] = false;
+                        flag = i;
+                        cornerRunnerIDs[i] = rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID();
+                        break;
+                    }
+                }
+            }
+
+        }
+        int tempCounter = 0;
+        for (int i = 0; i < atCorner.length; i++) {
+            if (atCorner[i])
+                tempCounter++;
+        }
+        if (tempCounter == 4) {
+            runCorner = false;
+            System.out.println("Corners have been found!");
+            System.out.println("Northwest Corner " + mapCorners[0].x + "," + mapCorners[0].y);
+            System.out.println("Northeast Corner " + mapCorners[1].x + "," + mapCorners[1].y);
+            System.out.println("Southeast Corner " + mapCorners[2].x + "," + mapCorners[2].y);
+            System.out.println("Southwest Corner " + mapCorners[3].x + "," + mapCorners[3].y);
+            closestCorner = closestCorner(rc, mapCorners);
+            System.out.println("Closest Corner + " + closestCorner.x + "," + closestCorner.y);
+
+        }
+        return flag;
+    }
+
+    static MapLocation getCornerLocation(RobotController rc, int flag) {
+        MapLocation corner = rc.getLocation();
+        int x = 0;
+        int y = 0;
+        if (flag % 1000000 >= 100000)
+            x = 0 - (flag % 100000) / 1000;
+        else
+            x = (flag % 100000) / 1000;
+        if (flag % 1000 >= 100)
+            y = 0 - (flag % 100);
+        else
+            y = flag % 100;
+        corner = corner.translate(x, y);
+        return corner;
+    }
+
+    static MapLocation closestCorner(RobotController rc, MapLocation[] corners) {
+        MapLocation currentLoc = rc.getLocation();
+        MapLocation cornerLoc = rc.getLocation();
+        int cornerDis = 10000;
+        for(MapLocation temp : corners) {
+            if(currentLoc.distanceSquaredTo(temp) < cornerDis) {
+                cornerLoc = temp;
+                cornerDis = currentLoc.distanceSquaredTo(temp);
+            }
+        }
+        return cornerLoc;
+    }
     //Goes through all arrays and checks whether the determined id can be found
     //If it can't be found, it replaces it with a -1, signalling it needs to be replaced
     //If it's a 0, it ignores it
@@ -383,7 +918,7 @@ public strictfp class RobotPlayer {
                     {
                         Units.get(i)[ii] = -1;
                     }
-                    else if(rc.getFlag(Units.get(i)[ii]) == 1)
+                    else if(rc.getFlag(Units.get(i)[ii]) == 10)
                     {
                         Units.get(i)[ii] = -1;
                     }
@@ -430,6 +965,66 @@ public strictfp class RobotPlayer {
         }
     }
 
+    /** Encodes a message given the message type, x-cord, y-cord, and other information
+     * see the flagSchema online
+     * Data is validated
+     * @param type 0-15, is the number signifying the type of action
+     * @param locationX, 0-127, x-coordinate % 128
+     * @param locationY 0-127, ycoordinate % 128
+     * @param extrema  0-63, can encode any other information 0-63
+     * @return returns a valid flag
+     */
+    static int encodeFlag(int type, int locationX,int locationY, int extrema){
+        int[] shift= {schema[1]+schema[2]+schema[3],schema[2]+schema[3],schema[3]};//will store how much to shift first n-1 params
+        int flag=((type<<shift[0])+(locationX<<shift[1])+(locationY<<shift[2])+extrema);
+        if(rc.canSetFlag(flag))
+            return flag;
+        return 0;
+    }
+    static int encodeFlag(int type, MapLocation loc, int extrema){
+        return encodeFlag(type, loc.x%128,loc.y%128,extrema);
+    }
+    static int encodeFlag(int type, int locationX, int locationY){
+        return encodeFlag(type,locationX,locationY,0);
+    }
+
+
+
+    /**Decodes flag into array of size 4
+     *
+     * @param flag 24 bit integer of a flag to be decoded
+     * @return returns the communication schema
+     */
+    static int[] decodeFlag(int flag){
+        int[] info= {flag>>shift[0],(flag>>shift[1])%(1<<schema[1]),(flag>>shift[2])%(1<<schema[2]),flag%(1<<schema[3])};
+        //Converts the bits into numbers brocken down by schema
+
+        return info;
+    }
+
+    /** Takes in x and y coordinates % 128 (such as a flag intake) and then outputs absolute MapLocation
+     *
+     *
+     */
+    static MapLocation getMapLocation(int x, int y){
+        MapLocation loc=rc.getLocation();
+        int xDif=x - (loc.x%128);
+        int yDif=x- (loc.y%128);
+
+        if(xDif<64 && xDif>-64)
+            loc=loc.translate(xDif,0);
+        else
+            loc=loc.translate((-128+xDif)%64,0);
+
+        if(yDif<64 && yDif>-64)
+            loc=loc.translate(0,yDif);
+        else
+            loc=loc.translate(0,(-128+yDif)%64-128);
+
+        return loc;
+
+
+    }
     //Finds the location of a given int within an array
     //Literally just indexOf but for an Array
     //If not found, returns -1
