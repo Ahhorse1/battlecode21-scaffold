@@ -1136,27 +1136,7 @@ public strictfp class RobotPlayer {
 
     } */
 
-    /**
-     *Outputs what we want the enlightenment center flag to be
-     * @param p politician cnt
-     * @param s slanderer cnt
-     * @param m muckracker cnt
-     *  2^24=1 67 77 21 6
-     *          p  s  m  dir
-     * @param dir 1 means top left, 2 top right, 3 bottom right, 4 bottom left
-     *-Ben
-     */
-    static int getEnlFlag(int p, int s, int m, int dir) throws GameActionException{
-        int flg=0;
-        flg+=p*100000;
-        flg+=s*100;
-        flg+=m*10;
-        flg+=dir;
-        if(rc.canSetFlag(flg))//Could theoretically be removed after testing
-            return flg;
-        return 0;
-
-    }
+    
 
 
     /**Code for non-enlightenment center units
@@ -1205,5 +1185,75 @@ public strictfp class RobotPlayer {
             rc.move(dir);
             return true;
         } else return false;
+    }
+    
+    //stores schema of the communications and how much to shift each n-1 parameter
+    static int[] schema = {4,7,7,6};
+    static int[] shift= {schema[1]+schema[2]+schema[3],schema[2]+schema[3],schema[3]};
+  
+    /**
+     *Outputs what we want the enlightenment center flag to be
+     * @param p politician cnt
+     * @param s slanderer cnt
+     * @param m muckracker cnt
+     *  2^24=1 67 77 21 6
+     *          p  s  m  dir
+     * @param dir 1 means top left, 2 top right, 3 bottom right, 4 bottom left
+     *
+     */
+    static int getEnlFlag(int p, int s, int m, int dir) throws GameActionException{
+        int flg=0;
+        flg+=p*100000;
+        flg+=s*100;
+        flg+=m*10;
+        flg+=dir;
+        if(rc.canSetFlag(flg))//Could theoretically be removed after testing
+            return flg;
+        return 0;
+
+    }
+    static int encodeFlag(int type, MapLocation loc, int extrema){
+        return encodeFlag(type, loc.x%128,loc.y%128,extrema);
+    }
+    static int encodeFlag(int type, int locationX, int locationY){
+        return encodeFlag(type,locationX,locationY,0);
+    }
+
+
+
+    /**Decodes flag into array of size 4
+     *
+     * @param flag 24 bit integer of a flag to be decoded
+     * @return returns the communication schema
+     */
+    static int[] decodeFlag(int flag){
+        int[] info= {flag>>shift[0],(flag>>shift[1])%(1<<schema[1]),(flag>>shift[2])%(1<<schema[2]),flag%(1<<schema[3])};
+        //Converts the bits into numbers brocken down by schema
+
+        return info;
+    }
+
+        /** Takes in x and y coordinates % 128 (such as a flag intake) and then outputs absolute MapLocation
+         *
+         *
+         */
+    static MapLocation getMapLocation(int x, int y){
+        MapLocation loc=rc.getLocation();
+        int xDif=x - (loc.x%128);
+        int yDif=x- (loc.y%128);
+
+        if(xDif<64 && xDif>-64)
+            loc=loc.translate(xDif,0);
+        else
+            loc=loc.translate((-128+xDif)%64,0);
+
+        if(yDif<64 && yDif>-64)
+            loc=loc.translate(0,yDif);
+        else
+            loc=loc.translate(0,(-128+yDif)%64-128);
+
+        return loc;
+
+
     }
 }
