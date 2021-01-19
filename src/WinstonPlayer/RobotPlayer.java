@@ -451,49 +451,27 @@ public strictfp class RobotPlayer {
     static void runMuckraker() throws GameActionException {
         if(turnCount==1)
             firstTurn();//Will set enlightenmentCenterID
+        if(turnCount==1)
+            firstTurn();//Will set enlightenmentCenterID
         if(turnCount==1){
             int[] ECFlag=decodeFlag(rc.getFlag(enlightenmentCenterID));
             switch(ECFlag[3]){
                 case 20:
+                    rc.setFlag(encodeFlag(0,0,0,20));
                     break;
-                    //Whatever
                 case 21:
+                    rc.setFlag(encodeFlag(0,0,0,21));
                     break;
-                    //Whatever
+                //Whatever
                 case 22:
+                    rc.setFlag(encodeFlag(0,0,0,22));
                     break;
-                    //Whatever
+                //Whatever
                 case 23:
+                    rc.setFlag(encodeFlag(0,0,0,23));
                     break;
-                    //Whatever
+                //Whatever
 
-            }
-        }
-        MapLocation currentLoc = rc.getLocation();
-        if (rc.getFlag(rc.getID()) == 0) {
-            for (Direction dir : directions) {
-                if (rc.senseRobotAtLocation(currentLoc.add(dir)) != null) {
-                    RobotInfo temp = rc.senseRobotAtLocation(currentLoc.add(dir));
-                    if (temp.type.equals(RobotType.ENLIGHTENMENT_CENTER)) {
-                        ecLoc = temp.location;
-                        int flag = rc.getFlag(temp.ID);
-
-                        switch (flag % 10) {
-                            case 0:
-                                rc.setFlag(1000000);
-                                break;
-                            case 1:
-                                rc.setFlag(2000000);
-                                break;
-                            case 2:
-                                rc.setFlag(3000000);
-                                break;
-                            case 3:
-                                rc.setFlag(4000000);
-                                break;
-                        }
-                    }
-                }
             }
         }
         if (rc.isReady()) {
