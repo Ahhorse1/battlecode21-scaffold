@@ -1153,58 +1153,6 @@ public strictfp class RobotPlayer {
         }
         return false;
     }
-    /**
-     *To be run as an enlightenment center
-     * Also updates slanderers to politicians in the local list
-     * Returns integer array of first the cnt, and then the direction of the first slanderer detected
-     * @param type The type of robot to be counted
-     *-Ben
-
-    **NOW OBSOLETE, SCHEDULED FOR DELETION**
-    static int[] getCntUnit(RobotType type) throws GameActionException{
-        int cnt=0;
-        int dir=0;
-        switch(type) {
-            case POLITICIAN:
-                for (int id : createdPoliticians11)
-                    if (rc.canGetFlag(id))//canGetFlag is used as a proxy for whether it exists
-                    {
-                        cnt++;
-                    }
-                for(int id2 : createdPoliticians25)
-                    if(rc.canGetFlag(id2))
-                    {
-                        cnt++;
-                    }
-            case SLANDERER:
-                for (int x=0;x<createdSlanderersID.size();x++) {
-                    int id=createdSlanderersID.get(x);
-                    if (rc.canGetFlag(id))
-                        if (rc.canSenseRobot(id)&&rc.senseRobot(id).getType().equals(RobotType.SLANDERER)) {
-                            cnt++;
-                            if(rc.getFlag(id)>=11&&rc.getFlag(id)<=14){
-                                if(rc.getFlag(rc.getID())%10==0){//We find direction of slanderer if we haven't set one yet
-                                    dir=rc.getFlag(id)%10;
-                                }
-                            }
-                        }
-                        else { //Ensure that slanderer hasn't changed to a politician and update
-                            createdSlanderersID.remove(x);
-                            createdPoliticiansID.add(id);
-                        }
-                }
-            case MUCKRAKER:
-                for (int id : createdMuckrakersID)
-                    if (rc.canGetFlag(id))
-                        cnt++;
-
-        }
-        int[] ret={cnt,dir};
-        return ret;
-
-    } */
-
-    
 
 
     /**Code for non-enlightenment center units
