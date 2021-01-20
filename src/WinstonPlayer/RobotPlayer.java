@@ -724,11 +724,8 @@ public strictfp class RobotPlayer {
 // Corner Runner Methods Below
 	
 	/**
-	 * Corner square is established as so: Pretend u is your robot and X are the
-	 * available spots around it X X U X X This would be considered a corner spot
-	 * The blank spaces are spaces where the robots are freely able to move around
-	 * to try to find corner squares The corner squares allow a robot to choose
-	 * which square to protect
+	 * Determines movement for CornerRunner Muckrakers and checks if they've reached a corner.
+	 * @throws GameActionException
 	 */
 	static void findCorner() throws GameActionException {
 		MapLocation currentLoc = rc.getLocation();
