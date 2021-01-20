@@ -119,8 +119,9 @@ public strictfp class RobotPlayer {
 	static void runEnlightenmentCenter() throws GameActionException {
 		rc.setFlag(1);
 		/*
-		 * 3 Slanderer - 41 Influence (412) 3 Politician - 20 Influence (201) 4 Corner
-		 * Runners Politicians - 1 Influence (11)
+		 * 3 Slanderer - 41 Influence (412) 
+		 * 3 Politician - 20 Influence (201) 
+		 * 4 Corner Runners Muckrakers - 10 Influence (101)
 		 */
 		if (turnCount == 1) {
 			int[] slanderers41 = { 412 };
@@ -131,12 +132,12 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(politicians20, 4));
 			Units.add(resizeArray(slanderers41, 4));
 		}
-		/*
-		 * Slanderers making around 20 influence per round 5 Slanderers with 85
-		 * Influence each (852) 18 Total Politicians with 20 Influence (201) 8
-		 * Enlightenment Center Guards 12 Politicians → Neutral Enlightenment Centers,
-		 * move randomly in a select direction Make 10 Muckrakers with 10 Influence
-		 * (103)
+		/* 
+		 * 5 Slanderers with 85 Influence each (852) 
+		 * 18 Politicians with 20 Influence (201) 
+		 * 8 Enlightenment Center Guards 
+		 * 12 Politicians → Neutral Enlightenment Centers,
+		 * Make 10 Muckrakers with 10 Influence (103)
 		 */
 		else if (turnCount == 30) {
 			int[] slanderers85 = { 1702 };
@@ -148,11 +149,12 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(slanderers85, 4));
 		}
 		/*
-		 * Slanderers making 50 influence per round 5 Slanderers with 230 Influence each
-		 * (2302) 10 Total Politicians with 80 influence each (801) 5 Total Politicians
-		 * with 20 influence each (201) 8 Enlightenment Center Guards 20 influence 15
-		 * Politicians → Neutral Enlightenment Centers, move randomly in a select
-		 * direction Make 10 Muckrakers with 50 Influence each (503)
+		 * 5 Slanderers with 230 Influence each (2302) 
+		 * 10 Politicians with 80 influence each (801) 
+		 * 5 Politicians with 20 influence each (201) 
+		 * 8 Enlightenment Center Guards 20 influence 
+		 * 15 Politicians → Neutral Enlightenment Centers
+		 * Make 10 Muckrakers with 50 Influence each (503)
 		 */
 		else if (turnCount == 165) {
 			int[] slanderers230 = { 4602 };
@@ -169,12 +171,12 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(slanderers230, 4));
 		}
 		/*
-		 * Slanderers making 200 influence per round 5 Slanderers with 1498 Influence
-		 * each (14982) 20 Total Politicians with 400 influence each (4001) 5 Total
-		 * Politicians with 100 influence (1001) 24 Enlightenment Center Guards 100
-		 * influence (1001) 20 Politicians → Neutral Enlightenment Centers, move
-		 * randomly in a select direction Make 10 Muckrakers with 100 Influence each
-		 * (1003)
+		 * 5 Slanderers with 1498 Influence each (14982) 
+		 * 20 Total Politicians with 400 influence each (4001) 
+		 * 5 Total Politicians with 100 influence (1001)
+		 * 24 Enlightenment Center Guards 100 influence (1001) 
+		 * 20 Politicians → Neutral Enlightenment Centers
+		 * Make 10 Muckrakers with 100 Influence each (1003)
 		 */
 		else if (turnCount == 360) {
 			int[] slanderers1498 = { 14982 };
@@ -188,8 +190,9 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(slanderers1498, 6));
 		}
 		/*
-		 * Make 10 Muckrakers with 100 Influence Each 20 Politicians → Neutral
-		 * Enlightenment Centers, move randomly in a select direction Bid for 100 Votes
+		 * Make 10 Muckrakers with 100 Influence Each 
+		 * 20 Politicians → Neutral Enlightenment Centers
+		 * Bid for 100 Votes
 		 */
 		else if (turnCount == 555) {
 			for (int i = 0; i < Units.size(); i++) {
@@ -292,9 +295,9 @@ public strictfp class RobotPlayer {
 
 	static void runMuckraker() throws GameActionException {
 		if (turnCount == 1)
-			firstTurn();// Will set enlightenmentCenterID
+			firstTurn();
 		if (turnCount == 1)
-			firstTurn();// Will set enlightenmentCenterID
+			firstTurn();
 		if (turnCount == 1) {
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			switch (ECFlag[3]) {
@@ -324,9 +327,7 @@ public strictfp class RobotPlayer {
 				int actionRadius = rc.getType().actionRadiusSquared;
 				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
 					if (robot.type.canBeExposed()) {
-						// It's a slanderer... go get them!
 						if (rc.canExpose(robot.location)) {
-							// System.out.println("e x p o s e d");
 							rc.expose(robot.location);
 							return;
 						}
