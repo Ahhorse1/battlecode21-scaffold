@@ -115,7 +115,6 @@ public strictfp class RobotPlayer {
 			}
 		}
 	}
-
 	static void runEnlightenmentCenter() throws GameActionException {
 		rc.setFlag(1);
 		/*
@@ -613,7 +612,7 @@ public strictfp class RobotPlayer {
 
 		for (int i = 0; i < nearby.length; i++) {
 			int id = nearby[i].getID();
-			if (rc.getFlag(id) == 1) {
+			if (nearby[i].getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 				options.add(nearby[i].getLocation());
 			}
 		}
@@ -679,7 +678,7 @@ public strictfp class RobotPlayer {
 		Direction toGo = rc.getLocation().directionTo(destination);
 		int id = rc.getID();
 		// System.out.println("THIS IS MY FLAG " + rc.getFlag(id));
-		if (rc.getFlag(id) == 1) {
+		if (decodeFlag(rc.getFlag(id))[3] == 11) { //11 means in lattice structure
 			// System.out.println("YIELDING");
 			Clock.yield();
 
@@ -688,9 +687,9 @@ public strictfp class RobotPlayer {
 			rc.move(toGo);
 
 			if (rc.getLocation().equals(destination))
-				rc.setFlag(1);
+				rc.setFlag(encodeFlag(0,0,0,11));
 			else
-				rc.setFlag(0);
+				rc.setFlag(encodeFlag(0,0,0,10));
 			Clock.yield();
 		}
 		if (rc.isLocationOccupied(destination)) {
