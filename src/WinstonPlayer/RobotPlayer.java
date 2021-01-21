@@ -116,7 +116,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 	static void runEnlightenmentCenter() throws GameActionException {
-		rc.setFlag(1);
+		
 		/*
 		 * 3 Slanderer - 41 Influence (412) 
 		 * 3 Politician - 20 Influence (201) 
