@@ -116,7 +116,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 	static void runEnlightenmentCenter() throws GameActionException {
-		
+
 		/*
 		 * 3 Slanderer - 41 Influence (412) 
 		 * 3 Politician - 20 Influence (201) 
@@ -612,7 +612,7 @@ public strictfp class RobotPlayer {
 
 		for (int i = 0; i < nearby.length; i++) {
 			int id = nearby[i].getID();
-			if (nearby[i].getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+			if (nearby[i].getType().equals(RobotType.ENLIGHTENMENT_CENTER)||decodeFlag(rc.getFlag(nearby[i].getID()))[3]==11) {
 				options.add(nearby[i].getLocation());
 			}
 		}
