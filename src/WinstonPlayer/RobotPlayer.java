@@ -217,7 +217,7 @@ public strictfp class RobotPlayer {
 			rc.empower(actionRadius);
 			return;
 		}
-		if (rc.getFlag(rc.getID()) == 10)
+		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10)
 			tryMove(randomDirection());
 		else
 			latticeStructure();
