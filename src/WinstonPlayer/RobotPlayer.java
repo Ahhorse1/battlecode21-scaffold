@@ -295,8 +295,6 @@ public strictfp class RobotPlayer {
 	static void runMuckraker() throws GameActionException {
 		if (turnCount == 1)
 			firstTurn();
-		if (turnCount == 1)
-			firstTurn();
 		if (turnCount == 1) {
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			switch (ECFlag[3]) {
