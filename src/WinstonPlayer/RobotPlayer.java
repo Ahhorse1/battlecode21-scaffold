@@ -1273,12 +1273,6 @@ public strictfp class RobotPlayer {
 
 	/**
 	 * Checks radius 2 for Enlightenment Center. Finds and set EC ID.
-	 * 
-	 * @requires turnCount == 1 and unit is created by EC
-	 * @ensures enlightementCenterID is the correct ID
-	 */
-	/**
-	 * Checks radius 2 for Enlightenment Center. Finds and set EC ID.
 	 * @throws GameActionException
 	 *
 	 * @requires turnCount == 1 and unit is created by EC
