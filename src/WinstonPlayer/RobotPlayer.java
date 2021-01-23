@@ -69,6 +69,9 @@ public strictfp class RobotPlayer {
 	 * ID of Enlightenment Center
 	 */
 	static int enlightenmentCenterID;
+	
+	static boolean readyToDie = false;
+	static int cornerNum = 0;
 
 	/**
 	 * run() is the method that is called when a robot is instantiated in the
@@ -230,99 +233,104 @@ public strictfp class RobotPlayer {
 	static void runPolitician() throws GameActionException {
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
-		int actionRadius = rc.getType().actionRadiusSquared;
+		int sensorRadius = rc.getType().sensorRadiusSquared;
 		Team neutral = Team.NEUTRAL;
-		RobotInfo[] neutralEC = rc.senseNearbyRobots(actionRadius, neutral);
-		RobotInfo[] attackable = rc.senseNearbyRobots(actionRadius, enemy);
-		if(neutralEC.length != 0) {
-			rc.setFlag(encodeFlag(02, neutralEC[0].location, 0));
+		RobotInfo[] neutralEC = rc.senseNearbyRobots(sensorRadius, neutral);
+		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, enemy);
+		if (turnCount == 1) {
+			firstTurn();
+			if (rc.getFlag(rc.getID()) == 0) {
+				if (rc.getInfluence() == 20)
+					rc.setFlag(encodeFlag(0, 0, 0, 10));
+			}
+		}
 
-			if(rc.isReady()) {
-				if(currentLoc.isWithinDistanceSquared(neutralEC[0].location, 2))
-					if(readyToDie)
-						rc.empower(2);
-					else if(rc.canMove(currentLoc.directionTo(neutralEC[0].location))) {
-						rc.move(currentLoc.directionTo(neutralEC[0].location));
-					}
-				readyToDie = true;
+		int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+
+		if (rc.isReady()) {
+			if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10) {
+				latticeStructure();
+				return;
+			} else if (decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
+				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(2, enemy);
+				if (attackableRadiusOne.length != 0)
+					rc.empower(2);
 				return;
 			}
-			readyToDie = true;
-			return;
 		}
-		else {
-			for(int i = 0; i < attackable.length; i++) {
-				if(attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
+
+		if (neutralEC.length != 0) {
+			System.out.println("test");
+			rc.setFlag(encodeFlag(02, neutralEC[0].location, 0));
+			if (rc.isReady()) {
+				if (currentLoc.isWithinDistanceSquared(neutralEC[0].location, 2)) {
+					if (readyToDie)
+						rc.empower(2);
+				} else if (rc.canMove(currentLoc.directionTo(neutralEC[0].location))) {
+					System.out.println("Moving towards Neutral");
+					rc.move(currentLoc.directionTo(neutralEC[0].location));
+				}
+				readyToDie = true;
+			}
+			readyToDie = true;
+		} else if (attackable.length != 0) {
+			for (int i = 0; i < attackable.length; i++) {
+				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
 					rc.setFlag(encodeFlag(03, attackable[i].location, 0));
-					if(rc.isReady()) {
-						if(currentLoc.isWithinDistanceSquared(attackable[i].location, 2))
-							if(readyToDie)
+					if (rc.isReady()) {
+						if (currentLoc.isWithinDistanceSquared(attackable[i].location, 2))
+							if (readyToDie)
 								rc.empower(2);
-							else if(rc.canMove(currentLoc.directionTo(attackable[i].location))) {
+							else if (rc.canMove(currentLoc.directionTo(attackable[i].location))) {
 								rc.move(currentLoc.directionTo(attackable[i].location));
 							}
 					}
+					readyToDie = true;
 
 				}
 			}
-		}
-		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10)
-			latticeStructure();
-		else if(decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
-			RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(2,  enemy);
-			if(attackableRadiusOne.length != 0)
-				rc.empower(2);
-			return;
-		}
-		else{
-			int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
-			if(ecFlag[0] == 1 || ecFlag[0] == 2){
-				MapLocation targetEC = getMapLocation(ecFlag[1], ecFlag[2]);
-				if(rc.isReady()) {
-					if(rc.canMove(currentLoc.directionTo(targetEC))){
-						rc.move(currentLoc.directionTo(targetEC));
-					}
-					else if(rc.canMove(currentLoc.directionTo(targetEC).rotateLeft())) {
-						rc.move(currentLoc.directionTo(targetEC).rotateLeft());
-					}
-					else if(rc.canMove(currentLoc.directionTo(targetEC).rotateRight())) {
-						rc.move(currentLoc.directionTo(targetEC).rotateRight());
-					}
-					else if(rc.canMove(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft())) {
-						rc.move(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft());
-					}
-					else if(rc.canMove(currentLoc.directionTo(targetEC).rotateRight().rotateRight())) {
-						rc.move(currentLoc.directionTo(targetEC).rotateRight().rotateRight());
-					}
+		} else if (ecFlag[0] == 1 || ecFlag[0] == 2) {
+			MapLocation targetEC = getMapLocation(ecFlag[1], ecFlag[2]);
+			if (rc.isReady()) {
+				if (rc.canMove(currentLoc.directionTo(targetEC))) {
+					rc.move(currentLoc.directionTo(targetEC));
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateLeft())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateLeft());
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateRight())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateRight());
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft());
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateRight().rotateRight())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateRight().rotateRight());
 				}
 			}
-			else {
-				tryMove(randomDirection());
-			}
-		}
+		} else
+			tryMove(randomDirection());
+
 	}
 
 
 
 	static void runSlanderer() throws GameActionException {
-		if (turnCount == 1)
+		int ECFlag;
+		if (turnCount == 1) {
 			firstTurn();
-		if(turnCount == 100)
-		{
-			rc.setFlag(10);
+			ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
+			if (ECFlag >= 30 && ECFlag <= 33)
+				cornerNum = ECFlag;
 		}
+		if(turnCount == 100)
+			rc.setFlag(10);
 		if (!rc.isReady())
 			return;
-
-		int ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
-		int cornerNum = 0;
-		if (ECFlag >= 20 && ECFlag <= 23)
-			cornerNum = ECFlag;
-		else
-			cornerNum = decodeFlag(rc.getFlag(rc.getID()))[3];
-		if (cornerNum >= 20 && cornerNum <= 23) {
+		if (cornerNum == 0) {
+			ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
+			if (ECFlag >= 30 && ECFlag <= 33)
+				cornerNum = ECFlag;
+		}
+		if (cornerNum > 0) {
 			switch (cornerNum) {
-			case 20:
+			case 30:
 				if (rc.canMove(Direction.NORTHWEST)) {
 					rc.move(Direction.NORTHWEST);
 					return;
@@ -334,7 +342,7 @@ public strictfp class RobotPlayer {
 					return;
 				}
 				break;
-			case 21:
+			case 31:
 				if (rc.canMove(Direction.NORTHEAST)) {
 					rc.move(Direction.NORTHEAST);
 					return;
@@ -347,7 +355,7 @@ public strictfp class RobotPlayer {
 				}
 
 				break;
-			case 22:
+			case 32:
 				if (rc.canMove(Direction.SOUTHEAST)) {
 					rc.move(Direction.SOUTHEAST);
 					return;
@@ -359,7 +367,7 @@ public strictfp class RobotPlayer {
 					return;
 				}
 				break;
-			case 23:
+			case 33:
 				if (rc.canMove(Direction.SOUTHWEST)) {
 					rc.move(Direction.SOUTHWEST);
 					return;
@@ -372,8 +380,11 @@ public strictfp class RobotPlayer {
 				}
 				break;
 			}
-		} else
-			tryMove(randomDirection());
+		} else {
+			if (rc.getLocation().isWithinDistanceSquared(ecLoc, 25))
+				tryMove(randomDirection());
+		}
+
 	}
 
 	static void runMuckraker() throws GameActionException {
@@ -388,15 +399,12 @@ public strictfp class RobotPlayer {
 			case 21:
 				rc.setFlag(encodeFlag(0, 0, 0, 21));
 				break;
-			// Whatever
 			case 22:
 				rc.setFlag(encodeFlag(0, 0, 0, 22));
 				break;
-			// Whatever
 			case 23:
 				rc.setFlag(encodeFlag(0, 0, 0, 23));
 				break;
-			// Whatever
 
 			}
 		}
