@@ -166,6 +166,8 @@ public strictfp class RobotPlayer {
 				if (rc.canGetFlag(id)) {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
+					if(flag[0]>0)
+						System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
 					case 1:// enemy EC
 						if (!enemyECs.contains(loc))
@@ -186,8 +188,10 @@ public strictfp class RobotPlayer {
 						}
 						if (enemyECs.contains(loc))
 							enemyECs.remove(loc);
-						if (neutralECs.contains(loc))
+						if (neutralECs.contains(loc)) {
 							neutralECs.remove(loc);
+							System.out.println("DELETING A neutral EC from list");
+						}
 						break;
 					case 12: // Slanderer storm
 						int myFlag = encodeFlag(12, loc);
@@ -281,7 +285,7 @@ public strictfp class RobotPlayer {
 					rc.setFlag(encodeFlag(3, loc));
 					if (neutralECs.contains(loc))
 						neutralECs.remove(loc);
-				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {
+				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {//Found an enemy EC
 					enemyECs.add(loc);
 					rc.setFlag(encodeFlag(1,loc));
 					if (neutralECs.contains(loc))
@@ -512,11 +516,11 @@ public strictfp class RobotPlayer {
 		int enemySlandererCnt = 0;
 		boolean flagSet = false;// Set this to true if we've already set our flag to something important
 		Team enemy = rc.getTeam().opponent();
-		for (RobotInfo robot : rc.senseNearbyRobots(senseRadius))
+		for (RobotInfo robot : rc.senseNearbyRobots(senseRadius)) {
 			if (robot.getType().canBeExposed()) {
 				if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER))
 					enemySlandererCnt++;
-				else {
+				else if (robot.getTeam().equals(rc.getTeam()) && robot.getType().equals(RobotType.SLANDERER)) {
 					int[] flag = decodeFlag(rc.getFlag(robot.getID()));
 					if (flag[0] == 12) {
 						targetDestination = getMapLocation(flag[1], flag[2]);
@@ -534,6 +538,7 @@ public strictfp class RobotPlayer {
 					flagSet = true;
 				}
 			}
+		}
 		if (enemySlandererCnt >= 12 && flagSet == false) { // notificationCutoff is set at 12, can increase whenever
 			// If the number of enemies warrants calling for reinforcements and there's not
 			// more important info to send
@@ -556,7 +561,8 @@ public strictfp class RobotPlayer {
 			return;
 
 		// Find a target to expose
-		for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy))
+		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius,enemy)
+		for (RobotInfo robot : nearby)
 			if (robot.getType().canBeExposed() && rc.isReady()) {
 				rc.expose(robot.getLocation());
 				return;
@@ -588,10 +594,11 @@ public strictfp class RobotPlayer {
 		int selfX = rc.getLocation().x;
 		int selfY = rc.getLocation().y;
 		int actionRadius = rc.getType().actionRadiusSquared;
+		int sensorRadius= = rc.getType().sensorRadiusSquared;
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
 		Boolean furtherX = false;
 		Boolean furtherY = false;
-		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius, rc.getTeam());
+		RobotInfo[] nearby = rc.senseNearbyRobots(sensorRadius, rc.getTeam());
 		for (RobotInfo robot : nearby) {
 			MapLocation location = robot.getLocation();
 			furtherX = (location.x >= selfX);
@@ -1539,13 +1546,18 @@ public strictfp class RobotPlayer {
 
 		if (xDif < 64 && xDif > -64)
 			loc = loc.translate(xDif, 0);
-		else
-			loc = loc.translate((-128 + xDif) % 64, 0);
+		else if(xDif<=-64)
+			loc = loc.translate((128 + xDif) % 64, 0);
+		else//larger than 64
+			loc=loc.translate((-128 -xDif)%64,0);
 
 		if (yDif < 64 && yDif > -64)
 			loc = loc.translate(0, yDif);
+		else if(yDif<=-64)
+			loc = loc.translate(0, (128 + yDif) % 64); //eg, -96 means up 32
 		else
-			loc = loc.translate(0, (-128 + yDif) % 64);
+			loc=loc.translate(0,(-128 -yDif)%64);
+
 
 		return loc;
 	}
