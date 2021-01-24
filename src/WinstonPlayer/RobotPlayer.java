@@ -235,6 +235,9 @@ public strictfp class RobotPlayer {
 		if (turnCount == 1)
 			firstTurn();
 
+		if(decodeFlag(rc.getFlag(rc.getID()))[3]==10&&turnCount>=8)//Don't worry about lattic after a couple turns
+			rc.setFlag(encodeFlag(0,0,0,12));
+
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
 		int sensorRadius = rc.getType().sensorRadiusSquared;
@@ -265,7 +268,7 @@ public strictfp class RobotPlayer {
 			break;
 		}
 
-		// Scan nearby robots, update stuffs
+		// Scan nearby robots, update stuff
 		RobotInfo[] nearby = rc.senseNearbyRobots(sensorRadius);
 		for (RobotInfo robot : nearby) {
 			loc = robot.getLocation();
@@ -298,37 +301,44 @@ public strictfp class RobotPlayer {
 				latticeStructure();
 				return;
 			} else if (decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
-				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(2, enemy);
+				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(4, enemy);
 				if (attackableRadiusOne.length != 0)
-					rc.empower(2);
+					rc.empower(4);
 				return;
 			}
 		}
 
-		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, rc.getTeam().opponent());
+		//Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
 			loc = neutralECs.get(0);
 			if (rc.isReady()) {
-				if (currentLoc.isWithinDistanceSquared(loc, 2))
+				if (currentLoc.isWithinDistanceSquared(loc, 2)) {
 					rc.empower(2);
-				else if (rc.canMove(currentLoc.directionTo(loc)))
+					return;
+				} else if (rc.canMove(currentLoc.directionTo(loc))) {
 					rc.move(currentLoc.directionTo(loc));
+					return;
+				} else if(currentLoc.isWithinDistanceSquared(loc,rc.getType().actionRadiusSquared)) {//We may be blocked from EC
+					rc.empower(currentLoc.distanceSquaredTo(loc));
+					return;
+				}
 			}
-			readyToDie = true;
-		} else if (attackable.length != 0) {
-			for (int i = 0; i < attackable.length; i++) {
-				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
-					rc.setFlag(encodeFlag(03, attackable[i].location, 0));
-					if (rc.isReady()) {
-						if (currentLoc.isWithinDistanceSquared(attackable[i].location, 2)) {
-							if (readyToDie)
-								rc.empower(2);
-						} else if (rc.canMove(currentLoc.directionTo(attackable[i].location))) {
-							rc.move(currentLoc.directionTo(attackable[i].location));
-						}
-					}
-					readyToDie = true;
+		}
 
+		//Attempt to attack a nearby unit
+		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, rc.getTeam().opponent());
+		if (attackable.length > 0) {
+			for (int i = 0; i < attackable.length; i++) {
+				if(attackable[i].getLocation().isWithinDistanceSquared(currentLoc,2)){
+					rc.empower(2);
+				}
+				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
+					if (rc.isReady()) {
+						if (rc.canMove(currentLoc.directionTo(attackable[i].location)))
+							rc.move(currentLoc.directionTo(attackable[i].location));
+						else if(currentLoc.isWithinDistanceSquared(loc,rc.getType().actionRadiusSquared))//We may be blocked from EC
+							rc.empower(currentLoc.distanceSquaredTo(loc));
+					}
 				}
 			}
 		} else if (ecFlag[0] == 1 || ecFlag[0] == 2) {
@@ -346,13 +356,15 @@ public strictfp class RobotPlayer {
 					rc.move(currentLoc.directionTo(targetEC).rotateRight().rotateRight());
 				}
 			}
-		} else {
-			for (Direction dir : directions)
-				if (rc.canMove(dir)) {
-					rc.move(dir);
-					return;
-				}
 		}
+
+		//If all else fails, do something
+		for (Direction dir : directions)
+			if (rc.canMove(dir)) {
+				rc.move(dir);
+				return;
+			}
+
 
 	}
 
@@ -463,7 +475,7 @@ public strictfp class RobotPlayer {
 															// help out a bro)
 		boolean haveDestination = false;// Set this to true if we got some place to go
 
-		// 1 Collect information from flag
+		// 1 Collect information from ECflag
 		if (rc.canGetFlag(enlightenmentCenterID)) {
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
