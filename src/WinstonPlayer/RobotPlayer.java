@@ -31,7 +31,6 @@ public strictfp class RobotPlayer {
 	 */
 	static MapLocation ecLoc;
 
-	static Boolean readyToDie = false;
 	/**
 	 * Used for Corner Runners, mapCorners holds MapLocations of the corners
 	 * cornerRunnerIDs holds the Muckrakers' IDs makeCornerRunner is used by the EC
@@ -69,7 +68,7 @@ public strictfp class RobotPlayer {
 	 * ID of Enlightenment Center
 	 */
 	static int enlightenmentCenterID;
-	
+
 	static boolean readyToDie = false;
 	static int cornerNum = 0;
 
@@ -96,14 +95,11 @@ public strictfp class RobotPlayer {
 				// You may rewrite this into your own control structure if you wish.
 				switch (rc.getType()) {
 				case ENLIGHTENMENT_CENTER:
-				    if(turnCount == 1 && rc.getInfluence() != 150)
-                    {
-                        runCapturedEnlightenmentCenter();
-                    }
-				    else
-				    {
-                        runEnlightenmentCenter();
-                    }
+					if (turnCount == 1 && rc.getInfluence() != 150) {
+						runCapturedEnlightenmentCenter();
+					} else {
+						runEnlightenmentCenter();
+					}
 					break;
 				case POLITICIAN:
 					runPolitician();
@@ -126,11 +122,11 @@ public strictfp class RobotPlayer {
 			}
 		}
 	}
+
 	static void runEnlightenmentCenter() throws GameActionException {
 		/*
-		 * 3 Slanderer - 41 Influence (412) 
-		 * 3 Politician - 20 Influence (201) 
-		 * 4 Corner Runners Muckrakers - 10 Influence (101)
+		 * 3 Slanderer - 41 Influence (412) 3 Politician - 20 Influence (201) 4 Corner
+		 * Runners Muckrakers - 10 Influence (101)
 		 */
 		if (turnCount == 1) {
 			int[] slanderers41 = { 412 };
@@ -141,12 +137,10 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(politicians20, 4));
 			Units.add(resizeArray(slanderers41, 4));
 		}
-		/* 
-		 * 5 Slanderers with 85 Influence each (852) 
-		 * 18 Politicians with 20 Influence (201) 
-		 * 8 Enlightenment Center Guards 
-		 * 12 Politicians → Neutral Enlightenment Centers,
-		 * Make 10 Muckrakers with 10 Influence (103)
+		/*
+		 * 5 Slanderers with 85 Influence each (852) 18 Politicians with 20 Influence
+		 * (201) 8 Enlightenment Center Guards 12 Politicians → Neutral Enlightenment
+		 * Centers, Make 10 Muckrakers with 10 Influence (103)
 		 */
 		else if (turnCount == 30) {
 			int[] slanderers85 = { 1702 };
@@ -158,12 +152,10 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(slanderers85, 4));
 		}
 		/*
-		 * 5 Slanderers with 230 Influence each (2302) 
-		 * 10 Politicians with 80 influence each (801) 
-		 * 5 Politicians with 20 influence each (201) 
-		 * 8 Enlightenment Center Guards 20 influence 
-		 * 15 Politicians → Neutral Enlightenment Centers
-		 * Make 10 Muckrakers with 50 Influence each (503)
+		 * 5 Slanderers with 230 Influence each (2302) 10 Politicians with 80 influence
+		 * each (801) 5 Politicians with 20 influence each (201) 8 Enlightenment Center
+		 * Guards 20 influence 15 Politicians → Neutral Enlightenment Centers Make 10
+		 * Muckrakers with 50 Influence each (503)
 		 */
 		else if (turnCount == 165) {
 			int[] slanderers230 = { 4602 };
@@ -180,12 +172,10 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(slanderers230, 4));
 		}
 		/*
-		 * 5 Slanderers with 1498 Influence each (14982) 
-		 * 20 Total Politicians with 400 influence each (4001) 
-		 * 5 Total Politicians with 100 influence (1001)
-		 * 24 Enlightenment Center Guards 100 influence (1001) 
-		 * 20 Politicians → Neutral Enlightenment Centers
-		 * Make 10 Muckrakers with 100 Influence each (1003)
+		 * 5 Slanderers with 1498 Influence each (14982) 20 Total Politicians with 400
+		 * influence each (4001) 5 Total Politicians with 100 influence (1001) 24
+		 * Enlightenment Center Guards 100 influence (1001) 20 Politicians → Neutral
+		 * Enlightenment Centers Make 10 Muckrakers with 100 Influence each (1003)
 		 */
 		else if (turnCount == 360) {
 			int[] slanderers1498 = { 14982 };
@@ -199,17 +189,14 @@ public strictfp class RobotPlayer {
 			Units.add(resizeArray(slanderers1498, 6));
 		}
 		/*
-		 * Make 10 Muckrakers with 100 Influence Each 
-		 * 20 Politicians → Neutral Enlightenment Centers
-		 * Bid for 100 Votes
+		 * Make 10 Muckrakers with 100 Influence Each 20 Politicians → Neutral
+		 * Enlightenment Centers Bid for 100 Votes
 		 */
 		else if (turnCount == 555) {
-			/*for (int i = 0; i < Units.size(); i++) {
-				int x = Units.get(i)[0];
-				if (x != 14982 || x != 1001 || x != 4001) {
-					Units.remove(i);
-				}
-			}*/
+			/*
+			 * for (int i = 0; i < Units.size(); i++) { int x = Units.get(i)[0]; if (x !=
+			 * 14982 || x != 1001 || x != 4001) { Units.remove(i); } }
+			 */
 			modeCount[0] = 1;
 			modeCount[1] = 0;
 		} else if (turnCount > 555) {
@@ -219,16 +206,14 @@ public strictfp class RobotPlayer {
 		}
 	}
 
-	static void runCapturedEnlightenmentCenter() throws GameActionException
-    {
-        if(turnCount == 1)
-        {
-            int[] slanderers = {2302};
-            Units.add(slanderers);
-        }
-        Units.set(0,resizeArray(Units.get(0),Units.get(0).length+1));
-        runStageTwo();
-    }
+	static void runCapturedEnlightenmentCenter() throws GameActionException {
+		if (turnCount == 1) {
+			int[] slanderers = { 2302 };
+			Units.add(slanderers);
+		}
+		Units.set(0, resizeArray(Units.get(0), Units.get(0).length + 1));
+		runStageTwo();
+	}
 
 	static void runPolitician() throws GameActionException {
 		Team enemy = rc.getTeam().opponent();
@@ -239,12 +224,11 @@ public strictfp class RobotPlayer {
 		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, enemy);
 		if (turnCount == 1) {
 			firstTurn();
-			if (rc.getFlag(rc.getID()) == 0) {
-				if (rc.getInfluence() == 20)
-					rc.setFlag(encodeFlag(0, 0, 0, 10));
-			}
 		}
-
+		if (rc.getFlag(rc.getID()) == 0) {
+			if (rc.getInfluence() == 20)
+				rc.setFlag(encodeFlag(0, 0, 0, 10));
+		}
 		int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 
 		if (rc.isReady()) {
@@ -260,14 +244,12 @@ public strictfp class RobotPlayer {
 		}
 
 		if (neutralEC.length != 0) {
-			System.out.println("test");
 			rc.setFlag(encodeFlag(02, neutralEC[0].location, 0));
 			if (rc.isReady()) {
 				if (currentLoc.isWithinDistanceSquared(neutralEC[0].location, 2)) {
 					if (readyToDie)
 						rc.empower(2);
 				} else if (rc.canMove(currentLoc.directionTo(neutralEC[0].location))) {
-					System.out.println("Moving towards Neutral");
 					rc.move(currentLoc.directionTo(neutralEC[0].location));
 				}
 				readyToDie = true;
@@ -278,12 +260,12 @@ public strictfp class RobotPlayer {
 				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
 					rc.setFlag(encodeFlag(03, attackable[i].location, 0));
 					if (rc.isReady()) {
-						if (currentLoc.isWithinDistanceSquared(attackable[i].location, 2))
+						if (currentLoc.isWithinDistanceSquared(attackable[i].location, 2)) {
 							if (readyToDie)
 								rc.empower(2);
-							else if (rc.canMove(currentLoc.directionTo(attackable[i].location))) {
-								rc.move(currentLoc.directionTo(attackable[i].location));
-							}
+						} else if (rc.canMove(currentLoc.directionTo(attackable[i].location))) {
+							rc.move(currentLoc.directionTo(attackable[i].location));
+						}
 					}
 					readyToDie = true;
 
@@ -309,8 +291,6 @@ public strictfp class RobotPlayer {
 
 	}
 
-
-
 	static void runSlanderer() throws GameActionException {
 		int ECFlag;
 		if (turnCount == 1) {
@@ -319,8 +299,10 @@ public strictfp class RobotPlayer {
 			if (ECFlag >= 30 && ECFlag <= 33)
 				cornerNum = ECFlag;
 		}
-		if(turnCount == 100)
+		if (turnCount == 100)
 			rc.setFlag(10);
+		if (turnCount == 299)
+			rc.setFlag(0);
 		if (!rc.isReady())
 			return;
 		if (cornerNum == 0) {
@@ -409,8 +391,12 @@ public strictfp class RobotPlayer {
 			}
 		}
 		if (rc.isReady()) {
+			if (decodeFlag(rc.getFlag(enlightenmentCenterID))[3] >= 30) {
+				rc.setFlag(0);
+			}
 			if (isCornerRunner()) {
 				findCorner();
+
 			} else {
 				Team enemy = rc.getTeam().opponent();
 				int actionRadius = rc.getType().actionRadiusSquared;
@@ -423,18 +409,19 @@ public strictfp class RobotPlayer {
 					}
 				}
 
-				tryMove(antiGroupingMovement());
+				tryMove(randomDirection());
 			}
 		}
 	}
 
 	/**
-	 * Moves the robot to lower-density areas based on which quadrants are emptier and passability
+	 * Moves the robot to lower-density areas based on which quadrants are emptier
+	 * and passability
+	 * 
 	 * @return a direction for the robot to move in
 	 * @throws GameActionException
 	 */
-	static Direction antiGroupingMovement() throws GameActionException
-	{
+	static Direction antiGroupingMovement() throws GameActionException {
 		int selfX = rc.getLocation().x;
 		int selfY = rc.getLocation().y;
 		int actionRadius = rc.getType().actionRadiusSquared;
@@ -442,93 +429,74 @@ public strictfp class RobotPlayer {
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
 		Boolean furtherX = false;
 		Boolean furtherY = false;
-		for(RobotInfo robot : rc.senseNearbyRobots(actionRadius, ally))
-		{
+		for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, ally)) {
 			MapLocation location = robot.getLocation();
 			furtherX = location.x >= selfX;
 			furtherY = location.y >= selfY;
-			if(furtherX && furtherY) {
+			if (furtherX && furtherY) {
 				quadrantOne++;
-			}
-			else if(furtherX && !furtherY) {
+			} else if (furtherX && !furtherY) {
 				quadrantTwo++;
-			}
-			else if(!furtherX && !furtherY) {
-				quadrantThree ++;
-			}
-			else {
+			} else if (!furtherX && !furtherY) {
+				quadrantThree++;
+			} else {
 				quadrantFour++;
 			}
 		}
-		if(quadrantOne<quadrantTwo && quadrantOne <quadrantThree && quadrantOne<quadrantFour)
-		{
+		if (quadrantOne < quadrantTwo && quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
 			double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
-			double northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));;
+			double northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));
+			;
 			double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
-			if(north<northeast && north<east)
-			{
+			if (north < northeast && north < east) {
 				return Direction.NORTH;
-			}
-			else if(northeast<east)
-			{
+			} else if (northeast < east) {
 				return Direction.NORTHEAST;
-			}
-			else {
+			} else {
 				return Direction.EAST;
 			}
 		}
-		if(quadrantTwo < quadrantThree && quadrantTwo < quadrantFour)
-		{
+		if (quadrantTwo < quadrantThree && quadrantTwo < quadrantFour) {
 			double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
-			double northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));;
+			double northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));
+			;
 			double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
-			if(north<northwest && north<west)
-			{
+			if (north < northwest && north < west) {
 				return Direction.NORTH;
-			}
-			else if(northwest<west)
-			{
+			} else if (northwest < west) {
 				return Direction.NORTHWEST;
-			}
-			else {
+			} else {
 				return Direction.WEST;
 			}
 		}
-		if( quadrantThree<quadrantFour)
-		{
+		if (quadrantThree < quadrantFour) {
 			double south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
-			double southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));;
+			double southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));
+			;
 			double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
-			if(south<southwest && south<west)
-			{
+			if (south < southwest && south < west) {
 				return Direction.NORTH;
-			}
-			else if(southwest<west)
-			{
+			} else if (southwest < west) {
 				return Direction.SOUTHWEST;
-			}
-			else {
+			} else {
 				return Direction.WEST;
 			}
-		}
-		else
-		{
+		} else {
 			double south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
-			double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));;
+			double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
+			;
 			double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
-			if(south<southeast && south<east) {
+			if (south < southeast && south < east) {
 				return Direction.SOUTH;
-			}
-			else if(southeast < east) {
+			} else if (southeast < east) {
 				return Direction.SOUTHEAST;
-			}
-			else {
+			} else {
 				return Direction.EAST;
 			}
 		}
 	}
 // Enlightenment Center Methods Below
-	
+
 	/**
 	 * Either Builds or Bids depending on buildUnits. Run by EC from Round 1-555
 	 * 
@@ -540,6 +508,27 @@ public strictfp class RobotPlayer {
 		if (rc.isReady()) {
 			stop = buildUnits();
 		}
+		if (!runCorner) {
+			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+			switch (closestCorner) {
+			case 0:
+				flag[3] = 30;
+				break;
+			case 1:
+				flag[3] = 31;
+				break;
+			case 2:
+				flag[3] = 32;
+				break;
+			case 3:
+				flag[3] = 33;
+				break;
+			}
+			rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], flag[3]));
+			System.out.println(decodeFlag(rc.getFlag(rc.getID()))[3]);
+		} else
+			updateCorner();
+
 		if (stop == 0) {
 			System.out.println("trying to bid");
 			int previousIncome = rc.getInfluence() - previousInfluence;
@@ -581,20 +570,19 @@ public strictfp class RobotPlayer {
 				}
 			} else if (modeCount[0] == 3) {
 				System.out.println("Mode Count 3");
-				if (rc.canBid(100)) {
-					rc.bid(100);
+				if (rc.canBid(50)) {
+					rc.bid(50);
 					modeCount[1]++;
 				}
-				if (modeCount[1] >= 40) {
+				if (modeCount[1] >= 100) {
 					modeCount[0] = 4;
 					modeCount[1] = 0;
 				}
 			} else if (modeCount[0] == 4) {
-				if (rc.isReady())
-				{
+				if (rc.isReady()) {
 					int a = buildUnits();
 					System.out.println("Mode Count 4");
-					if(a == 1) {
+					if (a == 1) {
 						modeCount[1]++;
 					}
 					if (a == 0) {
@@ -783,7 +771,7 @@ public strictfp class RobotPlayer {
 	}
 
 // Lattice Structure Methods Below
-	
+
 	/**
 	 * Checks for destination, else calls findDestination Then traverses towards
 	 * that destination
@@ -808,7 +796,8 @@ public strictfp class RobotPlayer {
 
 		for (int i = 0; i < nearby.length; i++) {
 			int id = nearby[i].getID();
-			if (nearby[i].getType().equals(RobotType.ENLIGHTENMENT_CENTER)||decodeFlag(rc.getFlag(nearby[i].getID()))[3]==11) {
+			if (nearby[i].getType().equals(RobotType.ENLIGHTENMENT_CENTER)
+					|| decodeFlag(rc.getFlag(nearby[i].getID()))[3] == 11) {
 				options.add(nearby[i].getLocation());
 			}
 		}
@@ -874,7 +863,7 @@ public strictfp class RobotPlayer {
 		Direction toGo = rc.getLocation().directionTo(destination);
 		int id = rc.getID();
 		// System.out.println("THIS IS MY FLAG " + rc.getFlag(id));
-		if (decodeFlag(rc.getFlag(id))[3] == 11) { //11 means in lattice structure
+		if (decodeFlag(rc.getFlag(id))[3] == 11) { // 11 means in lattice structure
 			// System.out.println("YIELDING");
 			Clock.yield();
 		}
@@ -882,9 +871,9 @@ public strictfp class RobotPlayer {
 			rc.move(toGo);
 
 			if (rc.getLocation().equals(destination))
-				rc.setFlag(encodeFlag(0,0,0,11));
+				rc.setFlag(encodeFlag(0, 0, 0, 11));
 			else
-				rc.setFlag(encodeFlag(0,0,0,10));
+				rc.setFlag(encodeFlag(0, 0, 0, 10));
 			Clock.yield();
 		}
 		if (rc.isLocationOccupied(destination)) {
@@ -914,11 +903,12 @@ public strictfp class RobotPlayer {
 
 	}
 
-
 // Corner Runner Methods Below
-	
+
 	/**
-	 * Determines movement for CornerRunner Muckrakers and checks if they've reached a corner.
+	 * Determines movement for CornerRunner Muckrakers and checks if they've reached
+	 * a corner.
+	 * 
 	 * @throws GameActionException
 	 */
 	static void findCorner() throws GameActionException {
@@ -1155,6 +1145,34 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	static void updateCorner() throws GameActionException {
+		int flag = rc.getFlag(rc.getID());
+		for (int i = 0; i < cornerRunnerIDs.length; i++) {
+			if (rc.canGetFlag(cornerRunnerIDs[i])) {
+				int[] tempFlag = decodeFlag(rc.getFlag(cornerRunnerIDs[i]));
+				if (tempFlag[0] == 6)// corner has been found
+				{
+					atCorner[i] = true;
+					mapCorners[i] = getMapLocation(tempFlag[1], tempFlag[2]);
+				}
+			} else {
+				makeCornerRunner[i] = true;
+			}
+		}
+
+		int tempCounter = 0;
+		for (int i = 0; i < atCorner.length; i++) {
+			if (atCorner[i])
+				tempCounter++;
+		}
+		if (tempCounter >= 2) {
+			runCorner = false;
+			closestCorner = closestCorner(mapCorners);
+			rc.setFlag(encodeFlag(6, mapCorners[closestCorner].x % 128, mapCorners[closestCorner].y % 128,
+					closestCorner + 20));
+		}
+	}
+
 	/**
 	 * Calculates closestCorner based on array
 	 * 
@@ -1180,9 +1198,8 @@ public strictfp class RobotPlayer {
 		return finalDir;
 	}
 
-
 // Flag Encoding/Decoding Methods Below
-	
+
 	/**
 	 * Encodes a message given the message type, x-cord, y-cord, and other
 	 * information
@@ -1273,6 +1290,7 @@ public strictfp class RobotPlayer {
 
 	/**
 	 * Checks radius 2 for Enlightenment Center. Finds and set EC ID.
+	 * 
 	 * @throws GameActionException
 	 *
 	 * @requires turnCount == 1 and unit is created by EC
@@ -1291,7 +1309,7 @@ public strictfp class RobotPlayer {
 	}
 
 // ExamplePlayerFuncs Methods	
-	
+
 	/**
 	 * Returns a random Direction.
 	 *
