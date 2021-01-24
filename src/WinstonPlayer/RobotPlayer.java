@@ -26,6 +26,8 @@ public strictfp class RobotPlayer {
 	static ArrayList<MapLocation> friendlyECs=new ArrayList();
 	static ArrayList<MapLocation> neutralalECs=new ArrayList();
 
+	static ArrayList<Integer> unitIDs= new ArrayList();
+
 
 
 	/**
@@ -133,6 +135,58 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runEnlightenmentCenter() throws GameActionException {
+
+		//Scan through flags and see what's up
+		if(unitIDs.size()>0){
+			int flagSetPriority=0;//Set this to the priority of the flag you set
+			//Neutral is priority 4, enemy is priority 3, slanderer storm is priority 2,
+			int id;
+			int[] flag;
+			MapLocation loc;
+			for(int i=0;i<unitIDs.size();++i){
+				id=unitIDs.get(i);
+				if(rc.canGetFlag(id)){
+					flag=decodeFlag(rc.getFlag(id));
+					loc=getMapLocation(flag[1],flag[2]);
+					switch(flag[0]){
+						case 1://enemy EC
+							if (!enemyECs.contains(loc))
+								enemyECs.add(loc);
+							if (friendlyECs.contains(loc))
+								friendlyECs.remove(loc);
+							if (neutralalECs.contains(loc))
+								neutralalECs.remove(loc);
+							break;
+						case 2: //neutral HQ
+							if (!neutralalECs.contains(loc))
+								neutralalECs.add(loc);
+							break;
+						case 3: //Friendly EC
+							if (!friendlyECs.contains(loc))
+								friendlyECs.add(loc);
+							if (enemyECs.contains(loc))
+								enemyECs.remove(loc);
+							if (neutralalECs.contains(loc))
+								neutralalECs.remove(loc);
+							break;
+						case 12: //Slanderer storm
+							int myFlag=encodeFlag(12,loc);
+							if(rc.canSetFlag(myFlag))
+								rc.setFlag(myFlag);
+
+					}
+				}else{
+					unitIDs.remove(i);//This means the robot went bye-bye
+				}
+			}
+		}
+		//Actually set the flag
+		if(neutralalECs.size()>0){
+			rc.setFlag(encodeFlag(2,neutralalECs.get(0)));
+		}
+
+
+
 		/*
 		 * 3 Slanderer - 41 Influence (412) 3 Politician - 20 Influence (201) 4 Corner
 		 * Runners Muckrakers - 10 Influence (101)
@@ -231,9 +285,9 @@ public strictfp class RobotPlayer {
 		Team neutral = Team.NEUTRAL;
 		RobotInfo[] neutralEC = rc.senseNearbyRobots(sensorRadius, neutral);
 		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, enemy);
-		if (turnCount == 1) {
+		if (turnCount == 1) 
 			firstTurn();
-		}
+
 		if (rc.getFlag(rc.getID()) == 0) {
 			if (rc.getInfluence() == 20)
 				rc.setFlag(encodeFlag(0, 0, 0, 10));
@@ -469,7 +523,7 @@ public strictfp class RobotPlayer {
 			rc.setFlag(encodeFlag(12, rc.getLocation()));
 		}
 
-		
+
 		if(isCornerRunner()){
 			int ECFlagMsg = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
 			if (ECFlagMsg>=30&&ECFlagMsg<=33){//Means that EC has already found a flag
@@ -538,6 +592,7 @@ public strictfp class RobotPlayer {
 			else
 				quadrantFour++;
 		}
+
 		double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
 		double northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));
 		double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
@@ -798,11 +853,9 @@ public strictfp class RobotPlayer {
 	 * @ensures correct index of int or -1
 	 */
 	static int indexOfArray(int[] array, int needle) {
-		for (int i = 0; i < array.length; i++) {
-			if (array[i] == needle) {
+		for (int i = 0; i < array.length; i++)
+			if (array[i] == needle)
 				return i;
-			}
-		}
 		return -1;
 	}
 
@@ -832,6 +885,7 @@ public strictfp class RobotPlayer {
 		for (Direction dir : directions) {
 			if (rc.canBuildRobot(toBuild, dir, influence)) {
 				rc.buildRobot(toBuild, dir, influence);
+				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());//Store unit ID of created thing
 				return rc.adjacentLocation(dir);
 			}
 		}
@@ -1212,6 +1266,7 @@ public strictfp class RobotPlayer {
 						makeCornerRunner[i] = false;
 						rc.setFlag(encodeFlag(0, 0, 0, i + 20));
 						cornerRunnerIDs[i] = rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID();
+						unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());
 						break;
 					}
 				}
@@ -1226,7 +1281,8 @@ public strictfp class RobotPlayer {
 		if (tempCounter >= 2) {
 			runCorner = false;
 			closestCorner = closestCorner(mapCorners);
-			rc.setFlag(encodeFlag(6, mapCorners[closestCorner].x % 128, mapCorners[closestCorner].y % 128,
+			int[] myFlag=decodeFlag(rc.getFlag(rc.getID()));
+			rc.setFlag(encodeFlag(myFlag[0],myFlag[1],myFlag[2],
 					closestCorner + 20));
 		}
 	}
