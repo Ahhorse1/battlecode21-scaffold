@@ -359,7 +359,6 @@ public strictfp class RobotPlayer {
 		RobotInfo[] attackable=rc.senseNearbyRobots(sensorRadius,rc.getTeam().opponent());
 		if (neutralalECs.size() > 0) {
 			loc=neutralalECs.get(0);
-			rc.setFlag(encodeFlag(   2, loc));
 			if (rc.isReady()) {
 				if (currentLoc.isWithinDistanceSquared(loc, 2))
 					rc.empower(2);
