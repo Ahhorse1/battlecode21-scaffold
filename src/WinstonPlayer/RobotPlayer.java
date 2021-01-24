@@ -279,35 +279,19 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runPolitician() throws GameActionException {
-		Team enemy = rc.getTeam().opponent();
-		MapLocation currentLoc = rc.getLocation();
-		int sensorRadius = rc.getType().sensorRadiusSquared;
-		RobotInfo[] neutralEC = rc.senseNearbyRobots(sensorRadius, Team.NEUTRAL);
-		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, enemy);
 		if (turnCount == 1)
 			firstTurn();
 
-		if (rc.getFlag(rc.getID()) == 0) {
-			if (rc.getInfluence() == 20)
-				rc.setFlag(encodeFlag(0, 0, 0, 10));
-		}
+		Team enemy = rc.getTeam().opponent();
+		MapLocation currentLoc = rc.getLocation();
+		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 
-		if (rc.isReady()) {
-			if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10) {
-				latticeStructure();
-				return;
-			} else if (decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
-				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(2, enemy);
-				if (attackableRadiusOne.length != 0)
-					rc.empower(2);
-				return;
-			}
-		}
+		//Update info from EC
 		MapLocation loc = getMapLocation(ecFlag[1], ecFlag[2]);
 		switch (ecFlag[0]) {
 			case 1://enemy EC
-			if (!enemyECs.contains(loc))
+				if (!enemyECs.contains(loc))
 					enemyECs.add(loc);
 				if (friendlyECs.contains(loc))
 					friendlyECs.remove(loc);
@@ -328,16 +312,57 @@ public strictfp class RobotPlayer {
 				break;
 		}
 
-		if (neutralEC.length > 0) {
-			rc.setFlag(encodeFlag(   2, neutralEC[0].location, 0));
-			if (rc.isReady()) {
-				if (currentLoc.isWithinDistanceSquared(neutralEC[0].location, 2)) {
-					if (readyToDie)
-						rc.empower(2);
-				} else if (rc.canMove(currentLoc.directionTo(neutralEC[0].location))) {
-					rc.move(currentLoc.directionTo(neutralEC[0].location));
+		//Scan nearby robots, update stuffs
+		RobotInfo[] nearby= rc.senseNearbyRobots(sensorRadius);
+		for(RobotInfo robot : nearby){
+			loc=robot.getLocation();
+			if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){//Found an EC
+				if(robot.getTeam().equals(Team.NEUTRAL) && !neutralalECs.contains(loc)) {
+					neutralalECs.add(loc);
+					rc.setFlag(encodeFlag(1,loc));
+				}else if(robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)){
+					friendlyECs.add(loc);
+					rc.setFlag(encodeFlag(3,loc));
+					if(neutralalECs.contains(loc))
+						neutralalECs.remove(loc);
+				} else if(robot.getTeam().equals(enemy) && !enemyECs.contains(loc)){
+					enemyECs.add(loc);
+					if(neutralalECs.contains(loc))
+						neutralalECs.remove(loc);
+					if(friendlyECs.contains(loc))
+						friendlyECs.remove(loc);
 				}
-				readyToDie = true;
+			}
+		}
+
+
+		if (rc.getFlag(rc.getID()) == 0) {
+			if (rc.getInfluence() == 20)
+				rc.setFlag(encodeFlag(0, 0, 0, 10));
+		}
+
+
+		if (rc.isReady()) {
+			if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10) {
+				latticeStructure();
+				return;
+			} else if (decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
+				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(2, enemy);
+				if (attackableRadiusOne.length != 0)
+					rc.empower(2);
+				return;
+			}
+		}
+
+		RobotInfo[] attackable=rc.senseNearbyRobots(sensorRadius,rc.getTeam().opponent());
+		if (neutralalECs.size() > 0) {
+			loc=neutralalECs.get(0);
+			rc.setFlag(encodeFlag(   2, loc));
+			if (rc.isReady()) {
+				if (currentLoc.isWithinDistanceSquared(loc, 2))
+					rc.empower(2);
+				else if (rc.canMove(currentLoc.directionTo(loc)))
+					rc.move(currentLoc.directionTo(loc));
 			}
 			readyToDie = true;
 		} else if (attackable.length != 0) {
@@ -1491,6 +1516,7 @@ public strictfp class RobotPlayer {
 			if (r.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 				enlightenmentCenterID = r.getID();
 				ecLoc = rc.senseRobot(enlightenmentCenterID).getLocation();
+				friendlyECs.add(ecLoc);
 				return;
 			}
 
