@@ -22,13 +22,11 @@ public strictfp class RobotPlayer {
 	/**
 	 *
 	 */
-	static ArrayList<MapLocation> enemyECs=new ArrayList();
-	static ArrayList<MapLocation> friendlyECs=new ArrayList();
-	static ArrayList<MapLocation> neutralalECs=new ArrayList();
+	static ArrayList<MapLocation> enemyECs = new ArrayList<MapLocation>();
+	static ArrayList<MapLocation> friendlyECs = new ArrayList<MapLocation>();
+	static ArrayList<MapLocation> neutralECs = new ArrayList<MapLocation>();
 
-	static ArrayList<Integer> unitIDs= new ArrayList();
-
-
+	static ArrayList<Integer> unitIDs = new ArrayList<Integer>();
 
 	/**
 	 * Arraylist of arrays Each array is +1 size larger than it's supposed to be,
@@ -84,6 +82,26 @@ public strictfp class RobotPlayer {
 	static int cornerNum = 0;
 
 	/**
+	 * Holds units for the first stage
+	 */
+	static int[][] stageOne = { { 0, 0 }, { 1302, 1072 } };
+	static int[][] stageTwo = { { 0, 0, 0, 0, 0 }, { 201, 131, 131, 1302, 1072 } };
+	/**
+	 * Holds Booleans for flipping between two different modes
+	 */
+	static Boolean stageTwoMode = false;
+	static Boolean stageFourMode = false;
+	static Boolean stageFiveMode = false;
+	static Boolean stageSixMode = false;
+
+	// int because it needs to transfer between 3 modes
+	static int[] stageSevenModes = { 0, 0 };
+	/**
+	 * Holds all integer breakpoints for the slanderers
+	 */
+	static int[] breakpoints = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255 };
+
+	/**
 	 * run() is the method that is called when a robot is instantiated in the
 	 * Battlecode world. If this method returns, the robot dies!
 	 **/
@@ -136,138 +154,71 @@ public strictfp class RobotPlayer {
 
 	static void runEnlightenmentCenter() throws GameActionException {
 
-		//Scan through flags and see what's up
-		if(unitIDs.size()>0){
-			int flagSetPriority=0;//Set this to the priority of the flag you set
-			//Neutral is priority 4, enemy is priority 3, slanderer storm is priority 2,
+		// Scan through flags and see what's up
+		if (unitIDs.size() > 0) {
+			int flagSetPriority = 0;// Set this to the priority of the flag you set
+			// Neutral is priority 4, enemy is priority 3, slanderer storm is priority 2,
 			int id;
 			int[] flag;
 			MapLocation loc;
-			for(int i=0;i<unitIDs.size();++i){
-				id=unitIDs.get(i);
-				if(rc.canGetFlag(id)){
-					flag=decodeFlag(rc.getFlag(id));
-					loc=getMapLocation(flag[1],flag[2]);
-					switch(flag[0]){
-						case 1://enemy EC
-							if (!enemyECs.contains(loc))
-								enemyECs.add(loc);
-							if (friendlyECs.contains(loc))
-								friendlyECs.remove(loc);
-							if (neutralalECs.contains(loc))
-								neutralalECs.remove(loc);
-							break;
-						case 2: //neutral HQ
-							if (!neutralalECs.contains(loc))
-								neutralalECs.add(loc);
-							break;
-						case 3: //Friendly EC
-							if (!friendlyECs.contains(loc)) {
-								friendlyECs.add(loc);
-								rc.setFlag(encodeFlag(3,loc));
-							}
-							if (enemyECs.contains(loc))
-								enemyECs.remove(loc);
-							if (neutralalECs.contains(loc))
-								neutralalECs.remove(loc);
-							break;
-						case 12: //Slanderer storm
-							int myFlag=encodeFlag(12,loc);
-							if(rc.canSetFlag(myFlag))
-								rc.setFlag(myFlag);
+			for (int i = 0; i < unitIDs.size(); ++i) {
+				id = unitIDs.get(i);
+				if (rc.canGetFlag(id)) {
+					flag = decodeFlag(rc.getFlag(id));
+					loc = getMapLocation(flag[1], flag[2]);
+					switch (flag[0]) {
+					case 1:// enemy EC
+						if (!enemyECs.contains(loc))
+							enemyECs.add(loc);
+						if (friendlyECs.contains(loc))
+							friendlyECs.remove(loc);
+						if (neutralECs.contains(loc))
+							neutralECs.remove(loc);
+						break;
+					case 2: // neutral HQ
+						if (!neutralECs.contains(loc))
+							neutralECs.add(loc);
+						break;
+					case 3: // Friendly EC
+						if (!friendlyECs.contains(loc)) {
+							friendlyECs.add(loc);
+							rc.setFlag(encodeFlag(3, loc));
+						}
+						if (enemyECs.contains(loc))
+							enemyECs.remove(loc);
+						if (neutralECs.contains(loc))
+							neutralECs.remove(loc);
+						break;
+					case 12: // Slanderer storm
+						int myFlag = encodeFlag(12, loc);
+						if (rc.canSetFlag(myFlag))
+							rc.setFlag(myFlag);
 
 					}
-				}else{
-					unitIDs.remove(i);//This means the robot went bye-bye
+				} else {
+					unitIDs.remove(i);// This means the robot went bye-bye
 				}
 			}
 		}
-		//Actually set the flag
-		if(neutralalECs.size()>0){
-			rc.setFlag(encodeFlag(2,neutralalECs.get(0)));
+		// Actually set the flag
+		if (neutralECs.size() > 0) {
+			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
 		}
 
-
-
-		/*
-		 * 3 Slanderer - 41 Influence (412) 3 Politician - 20 Influence (201) 4 Corner
-		 * Runners Muckrakers - 10 Influence (101)
-		 */
-		if (turnCount == 1) {
-			int[] slanderers41 = { 412 };
-			int[] politicians20 = { 201 };
-			int[] muckrakers1 = { 13 };
-
-			Units.add(resizeArray(muckrakers1, 5));
-			Units.add(resizeArray(politicians20, 4));
-			Units.add(resizeArray(slanderers41, 4));
-		}
-		/*
-		 * 5 Slanderers with 85 Influence each (852) 18 Politicians with 20 Influence
-		 * (201) 8 Enlightenment Center Guards 12 Politicians → Neutral Enlightenment
-		 * Centers, Make 10 Muckrakers with 10 Influence (103)
-		 */
-		else if (turnCount == 30) {
-			int[] slanderers85 = { 1702 };
-			int[] muckrakers10 = { 203 };
-
-			resizeFromList(201, 11);
-
-			Units.add(1, resizeArray(muckrakers10, 6));
-			Units.add(resizeArray(slanderers85, 4));
-		}
-		/*
-		 * 5 Slanderers with 230 Influence each (2302) 10 Politicians with 80 influence
-		 * each (801) 5 Politicians with 20 influence each (201) 8 Enlightenment Center
-		 * Guards 20 influence 15 Politicians → Neutral Enlightenment Centers Make 10
-		 * Muckrakers with 50 Influence each (503)
-		 */
-		else if (turnCount == 165) {
-			int[] slanderers230 = { 4602 };
-			int[] politicians80 = { 1601 };
-			int[] muckrakers50 = { 1003 };
-
-			for (int i = 0; i < Units.size(); i++)
-				if (Units.get(i)[0] == 201)
-					for (int x = 18; x > 14; x--)
-						Units.get(i)[x] = 0;
-
-			Units.add(resizeArray(muckrakers50, 6));
-			Units.add(resizeArray(politicians80, 6));
-			Units.add(resizeArray(slanderers230, 4));
-		}
-		/*
-		 * 5 Slanderers with 1498 Influence each (14982) 20 Total Politicians with 400
-		 * influence each (4001) 5 Total Politicians with 100 influence (1001) 24
-		 * Enlightenment Center Guards 100 influence (1001) 20 Politicians → Neutral
-		 * Enlightenment Centers Make 10 Muckrakers with 100 Influence each (1003)
-		 */
-		else if (turnCount == 360) {
-			int[] slanderers1498 = { 14982 };
-			int[] muckrakers100 = { 2003 };
-			int[] politicians400 = { 4001 };
-			int[] politicians100 = { 2001 };
-
-			Units.add(resizeArray(muckrakers100, 6));
-			Units.add(resizeArray(politicians100, 16));
-			Units.add(resizeArray(politicians400, 11));
-			Units.add(resizeArray(slanderers1498, 6));
-		}
-		/*
-		 * Make 10 Muckrakers with 100 Influence Each 20 Politicians → Neutral
-		 * Enlightenment Centers Bid for 100 Votes
-		 */
-		else if (turnCount == 555) {
-			/*
-			 * for (int i = 0; i < Units.size(); i++) { int x = Units.get(i)[0]; if (x !=
-			 * 14982 || x != 1001 || x != 4001) { Units.remove(i); } }
-			 */
-			modeCount[0] = 1;
-			modeCount[1] = 0;
-		} else if (turnCount > 555) {
-			runStageTwo();
-		} else {
+		if (turnCount <= 20) {
 			runStageOne();
+		} else if (turnCount <= 100) {
+			runStageTwo();
+		} else if (turnCount <= 120) {
+			runStageThree();
+		} else if (turnCount <= 150) {
+			runStageFour();
+		} else if (turnCount <= 200) {
+			runStageFive();
+		} else if (turnCount <= 350) {
+			runStageSix();
+		} else {
+			runStageSeven();
 		}
 	}
 
@@ -289,60 +240,58 @@ public strictfp class RobotPlayer {
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 
-		//Update info from EC
+		// Update info from EC
 		MapLocation loc = getMapLocation(ecFlag[1], ecFlag[2]);
 		switch (ecFlag[0]) {
-			case 1://enemy EC
-				if (!enemyECs.contains(loc))
-					enemyECs.add(loc);
-				if (friendlyECs.contains(loc))
-					friendlyECs.remove(loc);
-				if (neutralalECs.contains(loc))
-					neutralalECs.remove(loc);
-				break;
-			case 2: //neutral HQ
-				if (!neutralalECs.contains(loc))
-					neutralalECs.add(loc);
-				break;
-			case 3: //Friendly EC
-				if (!friendlyECs.contains(loc))
-					friendlyECs.add(loc);
-				if (enemyECs.contains(loc))
-					enemyECs.remove(loc);
-				if (neutralalECs.contains(loc))
-					neutralalECs.remove(loc);
-				break;
+		case 1:// enemy EC
+			if (!enemyECs.contains(loc))
+				enemyECs.add(loc);
+			if (friendlyECs.contains(loc))
+				friendlyECs.remove(loc);
+			if (neutralECs.contains(loc))
+				neutralECs.remove(loc);
+			break;
+		case 2: // neutral HQ
+			if (!neutralECs.contains(loc))
+				neutralECs.add(loc);
+			break;
+		case 3: // Friendly EC
+			if (!friendlyECs.contains(loc))
+				friendlyECs.add(loc);
+			if (enemyECs.contains(loc))
+				enemyECs.remove(loc);
+			if (neutralECs.contains(loc))
+				neutralECs.remove(loc);
+			break;
 		}
 
-		//Scan nearby robots, update stuffs
-		RobotInfo[] nearby= rc.senseNearbyRobots(sensorRadius);
-		for(RobotInfo robot : nearby){
-			loc=robot.getLocation();
-			if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){//Found an EC
-				if(robot.getTeam().equals(Team.NEUTRAL) && !neutralalECs.contains(loc)) {
-					neutralalECs.add(loc);
-					rc.setFlag(encodeFlag(1,loc));
-				}else if(robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)){
+		// Scan nearby robots, update stuffs
+		RobotInfo[] nearby = rc.senseNearbyRobots(sensorRadius);
+		for (RobotInfo robot : nearby) {
+			loc = robot.getLocation();
+			if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {// Found an EC
+				if (robot.getTeam().equals(Team.NEUTRAL) && !neutralECs.contains(loc)) {
+					neutralECs.add(loc);
+					rc.setFlag(encodeFlag(1, loc));
+				} else if (robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)) {
 					friendlyECs.add(loc);
-					rc.setFlag(encodeFlag(3,loc));
-					if(neutralalECs.contains(loc))
-						neutralalECs.remove(loc);
-				} else if(robot.getTeam().equals(enemy) && !enemyECs.contains(loc)){
+					rc.setFlag(encodeFlag(3, loc));
+					if (neutralECs.contains(loc))
+						neutralECs.remove(loc);
+				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {
 					enemyECs.add(loc);
-					if(neutralalECs.contains(loc))
-						neutralalECs.remove(loc);
-					if(friendlyECs.contains(loc))
+					if (neutralECs.contains(loc))
+						neutralECs.remove(loc);
+					if (friendlyECs.contains(loc))
 						friendlyECs.remove(loc);
 				}
 			}
 		}
 
-
 		if (rc.getFlag(rc.getID()) == 0) {
 			if (rc.getInfluence() == 20)
 				rc.setFlag(encodeFlag(0, 0, 0, 10));
 		}
-
 
 		if (rc.isReady()) {
 			if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10) {
@@ -356,9 +305,9 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		RobotInfo[] attackable=rc.senseNearbyRobots(sensorRadius,rc.getTeam().opponent());
-		if (neutralalECs.size() > 0) {
-			loc=neutralalECs.get(0);
+		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, rc.getTeam().opponent());
+		if (neutralECs.size() > 0) {
+			loc = neutralECs.get(0);
 			if (rc.isReady()) {
 				if (currentLoc.isWithinDistanceSquared(loc, 2))
 					rc.empower(2);
@@ -398,8 +347,8 @@ public strictfp class RobotPlayer {
 				}
 			}
 		} else {
-			for(Direction dir : directions)
-				if(rc.canMove(dir)) {
+			for (Direction dir : directions)
+				if (rc.canMove(dir)) {
 					rc.move(dir);
 					return;
 				}
@@ -486,136 +435,134 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runMuckraker() throws GameActionException {
-		//Define some constants
-		int senseRadius =   RobotType.MUCKRAKER.detectionRadiusSquared;
-		int actionRadius=       RobotType.MUCKRAKER.actionRadiusSquared;
+		// Define some constants
+		int senseRadius = RobotType.MUCKRAKER.detectionRadiusSquared;
+		int actionRadius = RobotType.MUCKRAKER.actionRadiusSquared;
 
-		//First turn stuffs
-		if (turnCount == 1){
-			firstTurn();//Sets ECFlag
+		// First turn stuffs
+		if (turnCount == 1) {
+			firstTurn();// Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			switch (ECFlag[3]) {
-				case 20:
-					rc.setFlag(encodeFlag(0, 0, 0, 20));
-					break;
-				case 21:
-					rc.setFlag(encodeFlag(0, 0, 0, 21));
-					break;
-				case 22:
-					rc.setFlag(encodeFlag(0, 0, 0, 22));
-					break;
-				case 23:
-					rc.setFlag(encodeFlag(0, 0, 0, 23));
-					break;
+			case 20:
+				rc.setFlag(encodeFlag(0, 0, 0, 20));
+				break;
+			case 21:
+				rc.setFlag(encodeFlag(0, 0, 0, 21));
+				break;
+			case 22:
+				rc.setFlag(encodeFlag(0, 0, 0, 22));
+				break;
+			case 23:
+				rc.setFlag(encodeFlag(0, 0, 0, 23));
+				break;
 			}
 		}
 
-		MapLocation targetDestination=rc.getLocation();//Set this to something if we got some place to go (i.e. go help out a bro)
-		boolean haveDestination=false;//Set this to true if we got some place to go
+		MapLocation targetDestination = rc.getLocation();// Set this to something if we got some place to go (i.e. go
+															// help out a bro)
+		boolean haveDestination = false;// Set this to true if we got some place to go
 
-		//1 Collect information from flag
-		if(rc.canGetFlag(enlightenmentCenterID)) {
+		// 1 Collect information from flag
+		if (rc.canGetFlag(enlightenmentCenterID)) {
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
 			switch (ECFlag[0]) {
-				case 1://enemy EC
-					if (!enemyECs.contains(loc))
-						enemyECs.add(loc);
-					if (friendlyECs.contains(loc))
-						friendlyECs.remove(loc);
-					if (neutralalECs.contains(loc))
-						neutralalECs.remove(loc);
-					break;
-				case 2: //neutral HQ
-					if (!neutralalECs.contains(loc))
-						neutralalECs.add(loc);
-					break;
-				case 3: //Friendly EC
-					if (!friendlyECs.contains(loc))
-						friendlyECs.add(loc);
-					if (enemyECs.contains(loc))
-						enemyECs.remove(loc);
-					if (neutralalECs.contains(loc))
-						neutralalECs.remove(loc);
-					break;
-				case 12: //A bro needs help (there's an enemy slanderer storm somewhere)
-					targetDestination=loc;
-					haveDestination=true;
-					break;
+			case 1:// enemy EC
+				if (!enemyECs.contains(loc))
+					enemyECs.add(loc);
+				if (friendlyECs.contains(loc))
+					friendlyECs.remove(loc);
+				if (neutralECs.contains(loc))
+					neutralECs.remove(loc);
+				break;
+			case 2: // neutral HQ
+				if (!neutralECs.contains(loc))
+					neutralECs.add(loc);
+				break;
+			case 3: // Friendly EC
+				if (!friendlyECs.contains(loc))
+					friendlyECs.add(loc);
+				if (enemyECs.contains(loc))
+					enemyECs.remove(loc);
+				if (neutralECs.contains(loc))
+					neutralECs.remove(loc);
+				break;
+			case 12: // A bro needs help (there's an enemy slanderer storm somewhere)
+				targetDestination = loc;
+				haveDestination = true;
+				break;
 			}
 		}
 
-		//2 scan surroundings
-		int enemySlandererCnt=0;
-		boolean flagSet=false;//Set this to true if we've already set our flag to something important
+		// 2 scan surroundings
+		int enemySlandererCnt = 0;
+		boolean flagSet = false;// Set this to true if we've already set our flag to something important
 		Team enemy = rc.getTeam().opponent();
 		for (RobotInfo robot : rc.senseNearbyRobots(senseRadius))
 			if (robot.getType().canBeExposed()) {
-				if(robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER))
+				if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER))
 					enemySlandererCnt++;
-				else{
-					int[] flag=decodeFlag(rc.getFlag(robot.getID()));
-					if(flag[0]==12){
-						targetDestination=getMapLocation(flag[1],flag[2]);
-						haveDestination=true;
+				else {
+					int[] flag = decodeFlag(rc.getFlag(robot.getID()));
+					if (flag[0] == 12) {
+						targetDestination = getMapLocation(flag[1], flag[2]);
+						haveDestination = true;
 					}
 				}
-			}else if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){
-				if(robot.getTeam().equals(enemy) && !enemyECs.contains(robot.getLocation())) {
-					//Found new enemy HQ
+			} else if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+				if (robot.getTeam().equals(enemy) && !enemyECs.contains(robot.getLocation())) {
+					// Found new enemy HQ
 					rc.setFlag(encodeFlag(1, robot.getLocation()));
-					flagSet=true;
-				}else if(robot.getTeam().equals(Team.NEUTRAL)){
-					//We've found a neutral enlightenment center!!!! Set flag at all costs
-					rc.setFlag(encodeFlag(2,robot.getLocation()));
-					flagSet=true;
+					flagSet = true;
+				} else if (robot.getTeam().equals(Team.NEUTRAL)) {
+					// We've found a neutral enlightenment center!!!! Set flag at all costs
+					rc.setFlag(encodeFlag(2, robot.getLocation()));
+					flagSet = true;
 				}
 			}
-		if(enemySlandererCnt>=12 && flagSet==false) { //notificationCutoff is set at 12, can increase whenever
-			//If the number of enemies warrants calling for reinforcements and there's not more important info to send
+		if (enemySlandererCnt >= 12 && flagSet == false) { // notificationCutoff is set at 12, can increase whenever
+			// If the number of enemies warrants calling for reinforcements and there's not
+			// more important info to send
 			rc.setFlag(encodeFlag(12, rc.getLocation()));
 		}
 
-
-		if(isCornerRunner()){
+		if (isCornerRunner()) {
 			int ECFlagMsg = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
-			if (ECFlagMsg>=30&&ECFlagMsg<=33){//Means that EC has already found a flag
-				int[] flag=decodeFlag(rc.getFlag(rc.getID()));
-				rc.setFlag(encodeFlag(flag[0],flag[1],flag[2],0));
+			if (ECFlagMsg >= 30 && ECFlagMsg <= 33) {// Means that EC has already found a flag
+				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+				if (flag[3] != ECFlagMsg) {
+					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+				}
 			} else
 				findCorner();
 		}
 
-		//Now in action phase of muckraker logic
-		if(!rc.isReady())
+		// Now in action phase of muckraker logic
+		if (!rc.isReady())
 			return;
 
-		//Find a target to expose
-		for(RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy))
-			if(robot.getType().canBeExposed()&&rc.isReady()) {
+		// Find a target to expose
+		for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy))
+			if (robot.getType().canBeExposed() && rc.isReady()) {
 				rc.expose(robot.getLocation());
 				return;
 			}
 
-
-
-		//Move somewhere based on destination, then antigrouping, then randomly
-		if(haveDestination&&rc.canMove(rc.getLocation().directionTo(targetDestination)))
+		// Move somewhere based on destination, then antigrouping, then randomly
+		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
 			rc.move(rc.getLocation().directionTo(targetDestination));
-		else if(rc.canMove(antiGroupingMovement()))
+		else if (rc.canMove(antiGroupingMovement()))
 			rc.move(antiGroupingMovement());
-		else{
-			for(Direction dir : directions)
-				if(rc.canMove(dir)) {
+		else {
+			for (Direction dir : directions)
+				if (rc.canMove(dir)) {
 					rc.move(dir);
 					return;
 				}
 		}
 
 	}
-
-
-
 
 	/**
 	 * Moves the robot to lower-density areas based on which quadrants are emptier
@@ -631,7 +578,7 @@ public strictfp class RobotPlayer {
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
 		Boolean furtherX = false;
 		Boolean furtherY = false;
-		RobotInfo[] nearby=rc.senseNearbyRobots(actionRadius,rc.getTeam());
+		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius, rc.getTeam());
 		for (RobotInfo robot : nearby) {
 			MapLocation location = robot.getLocation();
 			furtherX = (location.x >= selfX);
@@ -655,8 +602,8 @@ public strictfp class RobotPlayer {
 		double southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));
 		double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 		if (quadrantOne < quadrantTwo && quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
-			//Go to quadrant I
-			if (northeast<north && northeast < east)
+			// Go to quadrant I
+			if (northeast < north && northeast < east)
 				return Direction.NORTHEAST;
 			else if (north < east)
 				return Direction.NORTH;
@@ -664,17 +611,17 @@ public strictfp class RobotPlayer {
 				return Direction.EAST;
 		}
 		if (quadrantTwo < quadrantThree && quadrantTwo < quadrantFour) {
-			//Go to quadrant II
+			// Go to quadrant II
 			if (southeast < east && southeast < south)
 				return Direction.SOUTHEAST;
-			else if (south<east)
+			else if (south < east)
 				return Direction.SOUTH;
-			 else
+			else
 				return Direction.EAST;
 		}
 		if (quadrantThree < quadrantFour) {
-			//Go to quadrant III
-			if (southwest<south && southwest < west)
+			// Go to quadrant III
+			if (southwest < south && southwest < west)
 				return Direction.SOUTHWEST;
 			else if (south < west)
 				return Direction.SOUTH;
@@ -682,8 +629,8 @@ public strictfp class RobotPlayer {
 				return Direction.WEST;
 		}
 
-		//Go to quadrant IV
-		if (northwest<north && northwest < west)
+		// Go to quadrant IV
+		if (northwest < north && northwest < west)
 			return Direction.NORTHWEST;
 		else if (west < north)
 			return Direction.WEST;
@@ -693,46 +640,24 @@ public strictfp class RobotPlayer {
 	}
 // Enlightenment Center Methods Below
 
-	/**
-	 * Either Builds or Bids depending on buildUnits. Run by EC from Round 1-555
-	 * 
-	 * @throws GameActionException
-	 */
 	static void runStageOne() throws GameActionException {
-		replace();
-		int stop = 0;
-		if (rc.isReady())
-			stop = buildUnits();
-		if (!runCorner) {
-			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
-			switch (closestCorner) {
-			case 0:
-				flag[3] = 30;
-				break;
-			case 1:
-				flag[3] = 31;
-				break;
-			case 2:
-				flag[3] = 32;
-				break;
-			case 3:
-				flag[3] = 33;
-				break;
+		if (rc.isReady()) {
+			for (int i = 0; i < 2; i++) {
+				if (stageOne[0][i] == 0) {
+					int toBuildCode = stageOne[1][i];
+					RobotType toBuild = decodeBuild(toBuildCode);
+					if (canConstruct(toBuild, toBuildCode / 10)) {
+						construct(toBuild, toBuildCode / 10);
+						stageOne[0][i] = 1;
+						return;
+					}
+				}
 			}
-			rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], flag[3]));
-			System.out.println(decodeFlag(rc.getFlag(rc.getID()))[3]);
-		} else
-			updateCorner();
-
-		if (stop == 0) {
-			System.out.println("trying to bid");
-			int previousIncome = rc.getInfluence() - previousInfluence;
-			if (rc.canBid((int) (previousIncome * 1.5))) {
-				System.out.println("bid");
-				rc.bid((int) (previousIncome * 1.5));
+			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+				construct(RobotType.MUCKRAKER, 1);
 			}
 		}
-		setPrevious();
+
 	}
 
 	/**
@@ -741,57 +666,166 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void runStageTwo() throws GameActionException {
-		replace();
 		if (rc.isReady()) {
-			if (modeCount[0] == 1) {
-				System.out.println("Mode Count 1");
-				if (canConstruct(RobotType.MUCKRAKER, 10)) {
-					construct(RobotType.MUCKRAKER, 10);
-					modeCount[1]++;
-				}
-				if (modeCount[1] >= 5) {
-					modeCount[0] = 2;
-					modeCount[1] = 0;
-				}
-			} else if (modeCount[0] == 2) {
-				System.out.println("Mode Count 2");
-				if (canConstruct(RobotType.POLITICIAN, 100)) {
-					construct(RobotType.POLITICIAN, 100);
-					modeCount[1]++;
-				}
-				if (modeCount[1] >= 5) {
-					modeCount[0] = 3;
-					modeCount[1] = 0;
-				}
-			} else if (modeCount[0] == 3) {
-				System.out.println("Mode Count 3");
-				if (rc.canBid(50)) {
-					rc.bid(50);
-					modeCount[1]++;
-				}
-				if (modeCount[1] >= 100) {
-					modeCount[0] = 4;
-					modeCount[1] = 0;
-				}
-			} else if (modeCount[0] == 4) {
-				if (rc.isReady()) {
-					int a = buildUnits();
-					System.out.println("Mode Count 4");
-					if (a == 1) {
-						modeCount[1]++;
-					}
-					if (a == 0) {
-						modeCount[0] = 1;
-						modeCount[1] = 0;
-					} else if (modeCount[1] >= 5) {
-						modeCount[0] = 1;
-						modeCount[1] = 0;
+			for (int i = 0; i < 3; i++) {
+				if (stageTwo[0][i] == 0) {
+					int toBuildCode = stageTwo[1][i];
+					RobotType toBuild = decodeBuild(toBuildCode);
+					if (canConstruct(toBuild, toBuildCode / 10)) {
+						construct(toBuild, toBuildCode / 10);
+						stageTwo[0][i] = 1;
+						return;
 					}
 				}
 			}
+			if (stageTwoMode) {
+				if (canConstruct(RobotType.POLITICIAN, 20)) {
+					construct(RobotType.POLITICIAN, 20);
+					stageTwoMode = false;
+					return;
+				}
+			} else {
+				int x = nearestBreakpoint();
+				if (canConstruct(RobotType.SLANDERER, x)) {
+					construct(RobotType.SLANDERER, x);
+					stageTwoMode = true;
+					return;
+				}
+			}
+			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+				construct(RobotType.MUCKRAKER, 1);
+			}
 		}
+	}
 
-		setPrevious();
+	static void runStageThree() throws GameActionException {
+		if(neutralECs.size() > 0) {
+			
+		}
+		/**
+		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
+		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
+		 * if(canConstruct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10) {
+		 * construct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10); }
+		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
+		 * }
+		 */
+	}
+
+	static void runStageFour() throws GameActionException {
+		if (rc.isReady()) {
+			if (stageFourMode) {
+				if (canConstruct(RobotType.SLANDERER, 107)) {
+					construct(RobotType.SLANDERER, 107);
+					stageFourMode = false;
+				}
+			} else {
+				if (canConstruct(RobotType.SLANDERER, 130)) {
+					construct(RobotType.SLANDERER, 130);
+				}
+			}
+		}
+	}
+
+	static void runStageFive() throws GameActionException {
+		/**
+		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
+		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
+		 * if(canConstruct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10) {
+		 * construct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10); }
+		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
+		 * }
+		 */
+		if (rc.isReady()) {
+			if (stageFiveMode) {
+				if (canConstruct(RobotType.POLITICIAN, 100)) {
+					construct(RobotType.POLITICIAN, 100);
+					stageFiveMode = false;
+					return;
+				}
+			} else {
+				int x = nearestBreakpoint();
+				if (canConstruct(RobotType.SLANDERER, x)) {
+					construct(RobotType.SLANDERER, x);
+					stageFiveMode = false;
+					return;
+				}
+			}
+			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+				construct(RobotType.MUCKRAKER, 1);
+			}
+		}
+	}
+
+	static void runStageSix() throws GameActionException {
+		if (rc.isReady()) {
+			if (stageSixMode) {
+				if (canConstruct(RobotType.POLITICIAN, 150)) {
+					construct(RobotType.POLITICIAN, 150);
+					stageSixMode = false;
+					return;
+				}
+			} else {
+				int x = nearestBreakpoint();
+				if (canConstruct(RobotType.SLANDERER, x)) {
+					construct(RobotType.SLANDERER, x);
+					stageSixMode = false;
+					return;
+				}
+			}
+			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+				construct(RobotType.MUCKRAKER, 1);
+			}
+		}
+	}
+
+	static void runStageSeven() throws GameActionException {
+		if (rc.isReady()) {
+			if (stageSevenModes[0] == 0) {
+				if (canConstruct(RobotType.POLITICIAN, 100)) {
+					construct(RobotType.POLITICIAN, 100);
+					stageSevenModes[1] += 1;
+				}
+				if (stageSevenModes[1] >= 10) {
+					stageSevenModes[0] = 1;
+					stageSevenModes[1] = 0;
+				}
+			} else if (stageSevenModes[0] == 1) {
+				int x = nearestBreakpoint();
+				if (canConstruct(RobotType.SLANDERER, x)) {
+					construct(RobotType.SLANDERER, x);
+					stageSevenModes[1] += 1;
+				}
+				if (stageSevenModes[1] >= 10) {
+					stageSevenModes[0] = 2;
+					stageSevenModes[1] = 0;
+				}
+			} else if (stageSevenModes[0] == 2) {
+				if (rc.canBid(10)) {
+					rc.bid(10);
+				}
+			}
+		}
+	}
+
+	static int nearestBreakpoint() throws GameActionException {
+		for (int i = 1; i < breakpoints.length; i++) {
+			if (breakpoints[i] > rc.getInfluence()) {
+				return breakpoints[i - 1];
+			}
+		}
+		return 0;
+	}
+
+	static RobotType decodeBuild(int x) {
+		int y = x % 10;
+		if (y == 1) {
+			return RobotType.POLITICIAN;
+		} else if (y == 2) {
+			return RobotType.SLANDERER;
+		} else {
+			return RobotType.MUCKRAKER;
+		}
 	}
 
 	/**
@@ -938,7 +972,8 @@ public strictfp class RobotPlayer {
 		for (Direction dir : directions) {
 			if (rc.canBuildRobot(toBuild, dir, influence)) {
 				rc.buildRobot(toBuild, dir, influence);
-				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());//Store unit ID of created thing
+				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());// Store unit ID of created
+																						// thing
 				return rc.adjacentLocation(dir);
 			}
 		}
@@ -1110,7 +1145,7 @@ public strictfp class RobotPlayer {
 		boolean isAtCorner = false;
 		int cornerNum = decodeFlag(rc.getFlag(rc.getID()))[3];
 		switch (cornerNum) {
-		case 20://Go to top left
+		case 20:// Go to top left
 			if (rc.canMove(Direction.NORTHWEST)) {
 				rc.move(Direction.NORTHWEST);
 				return;
@@ -1120,7 +1155,7 @@ public strictfp class RobotPlayer {
 			} else if (rc.canMove(Direction.WEST)) {
 				rc.move(Direction.WEST);
 				return;
-			} else {//Check if we're at the corner
+			} else {// Check if we're at the corner
 				MapLocation tempLoc = currentLoc;
 				tempLoc = tempLoc.add(Direction.NORTH);
 				tempLoc = tempLoc.add(Direction.NORTH);
@@ -1149,7 +1184,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			break;
-		case 21:			//Go to top right
+		case 21: // Go to top right
 			if (rc.canMove(Direction.NORTHEAST)) {
 				rc.move(Direction.NORTHEAST);
 				return;
@@ -1188,7 +1223,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			break;
-		case 22:		//Go to bottom right
+		case 22: // Go to bottom right
 			if (rc.canMove(Direction.SOUTHEAST)) {
 				rc.move(Direction.SOUTHEAST);
 				return;
@@ -1227,7 +1262,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			break;
-		case 23:			//Go to bottom right
+		case 23: // Go to bottom right
 			if (rc.canMove(Direction.SOUTHWEST)) {
 				rc.move(Direction.SOUTHWEST);
 				return;
@@ -1268,7 +1303,7 @@ public strictfp class RobotPlayer {
 			break;
 		}
 
-		if (isAtCorner) //We've found a corner. Let the world know!
+		if (isAtCorner) // We've found a corner. Let the world know!
 			rc.setFlag(encodeFlag(6, currentLoc, cornerNum));
 	}
 
@@ -1334,9 +1369,8 @@ public strictfp class RobotPlayer {
 		if (tempCounter >= 2) {
 			runCorner = false;
 			closestCorner = closestCorner(mapCorners);
-			int[] myFlag=decodeFlag(rc.getFlag(rc.getID()));
-			rc.setFlag(encodeFlag(myFlag[0],myFlag[1],myFlag[2],
-					closestCorner + 20));
+			int[] myFlag = decodeFlag(rc.getFlag(rc.getID()));
+			rc.setFlag(encodeFlag(myFlag[0], myFlag[1], myFlag[2], closestCorner + 20));
 		}
 	}
 
@@ -1438,13 +1472,12 @@ public strictfp class RobotPlayer {
 	 * @return returns a encoded flag
 	 * @ensures flag is properly coded
 	 */
-	static int encodeFlag(int type, int locationX, int locationY) throws GameActionException{
-		int extrema=0;
-		if(rc.canGetFlag(rc.getID()))
-			extrema=decodeFlag(rc.getFlag(rc.getID()))[3];
+	static int encodeFlag(int type, int locationX, int locationY) throws GameActionException {
+		int extrema = 0;
+		if (rc.canGetFlag(rc.getID()))
+			extrema = decodeFlag(rc.getFlag(rc.getID()))[3];
 		return encodeFlag(type, locationX, locationY, extrema);
 	}
-
 
 	/**
 	 * Encodes a message given the message type, MapLocation
@@ -1452,13 +1485,14 @@ public strictfp class RobotPlayer {
 	 * @param type, 0-15, is the number signifying the type of action
 	 * @param loc, MapLocation trying to be communicated
 	 * @return returns a encoded flag
-	 * @ensures flag is properly coded DOESN'T CHANGE THE extrma flag (good for corner runner)
+	 * @ensures flag is properly coded DOESN'T CHANGE THE extrma flag (good for
+	 *          corner runner)
 	 */
-	static int encodeFlag(int type, MapLocation loc) throws GameActionException{
-		int extrema=0;
-		if(rc.canGetFlag(rc.getID()))
-			extrema=decodeFlag(rc.getFlag(rc.getID()))[3];
-		return encodeFlag(type,loc.x % 128, loc.y % 128, decodeFlag((rc.getFlag(rc.getID())))[3]);
+	static int encodeFlag(int type, MapLocation loc) throws GameActionException {
+		int extrema = 0;
+		if (rc.canGetFlag(rc.getID()))
+			extrema = decodeFlag(rc.getFlag(rc.getID()))[3];
+		return encodeFlag(type, loc.x % 128, loc.y % 128, decodeFlag((rc.getFlag(rc.getID())))[3]);
 
 	}
 
