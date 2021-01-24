@@ -446,7 +446,6 @@ public strictfp class RobotPlayer {
 		if (quadrantOne < quadrantTwo && quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
 			double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
 			double northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));
-			;
 			double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
 			if (north < northeast && north < east) {
 				return Direction.NORTH;
@@ -505,9 +504,8 @@ public strictfp class RobotPlayer {
 	static void runStageOne() throws GameActionException {
 		replace();
 		int stop = 0;
-		if (rc.isReady()) {
+		if (rc.isReady())
 			stop = buildUnits();
-		}
 		if (!runCorner) {
 			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 			switch (closestCorner) {
