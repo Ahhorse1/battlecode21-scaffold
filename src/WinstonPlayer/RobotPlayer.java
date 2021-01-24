@@ -162,8 +162,10 @@ public strictfp class RobotPlayer {
 								neutralalECs.add(loc);
 							break;
 						case 3: //Friendly EC
-							if (!friendlyECs.contains(loc))
+							if (!friendlyECs.contains(loc)) {
 								friendlyECs.add(loc);
+								rc.setFlag(encodeFlag(3,loc));
+							}
 							if (enemyECs.contains(loc))
 								enemyECs.remove(loc);
 							if (neutralalECs.contains(loc))
