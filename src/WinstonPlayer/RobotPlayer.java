@@ -282,10 +282,9 @@ public strictfp class RobotPlayer {
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
 		int sensorRadius = rc.getType().sensorRadiusSquared;
-		Team neutral = Team.NEUTRAL;
-		RobotInfo[] neutralEC = rc.senseNearbyRobots(sensorRadius, neutral);
+		RobotInfo[] neutralEC = rc.senseNearbyRobots(sensorRadius, Team.NEUTRAL);
 		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, enemy);
-		if (turnCount == 1) 
+		if (turnCount == 1)
 			firstTurn();
 
 		if (rc.getFlag(rc.getID()) == 0) {
@@ -305,9 +304,32 @@ public strictfp class RobotPlayer {
 				return;
 			}
 		}
+		MapLocation loc = getMapLocation(ecFlag[1], ecFlag[2]);
+		switch (ecFlag[0]) {
+			case 1://enemy EC
+			if (!enemyECs.contains(loc))
+					enemyECs.add(loc);
+				if (friendlyECs.contains(loc))
+					friendlyECs.remove(loc);
+				if (neutralalECs.contains(loc))
+					neutralalECs.remove(loc);
+				break;
+			case 2: //neutral HQ
+				if (!neutralalECs.contains(loc))
+					neutralalECs.add(loc);
+				break;
+			case 3: //Friendly EC
+				if (!friendlyECs.contains(loc))
+					friendlyECs.add(loc);
+				if (enemyECs.contains(loc))
+					enemyECs.remove(loc);
+				if (neutralalECs.contains(loc))
+					neutralalECs.remove(loc);
+				break;
+		}
 
-		if (neutralEC.length != 0) {
-			rc.setFlag(encodeFlag(02, neutralEC[0].location, 0));
+		if (neutralEC.length > 0) {
+			rc.setFlag(encodeFlag(   2, neutralEC[0].location, 0));
 			if (rc.isReady()) {
 				if (currentLoc.isWithinDistanceSquared(neutralEC[0].location, 2)) {
 					if (readyToDie)
@@ -349,8 +371,13 @@ public strictfp class RobotPlayer {
 					rc.move(currentLoc.directionTo(targetEC).rotateRight().rotateRight());
 				}
 			}
-		} else
-			tryMove(randomDirection());
+		} else {
+			for(Direction dir : directions)
+				if(rc.canMove(dir)) {
+					rc.move(dir);
+					return;
+				}
+		}
 
 	}
 
