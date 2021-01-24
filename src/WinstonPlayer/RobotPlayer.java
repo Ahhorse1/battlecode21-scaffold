@@ -370,24 +370,22 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runMuckraker() throws GameActionException {
-		if (turnCount == 1)
-			firstTurn();
-		if (turnCount == 1) {
+		if (turnCount == 1){
+			firstTurn();//Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			switch (ECFlag[3]) {
-			case 20:
-				rc.setFlag(encodeFlag(0, 0, 0, 20));
-				break;
-			case 21:
-				rc.setFlag(encodeFlag(0, 0, 0, 21));
-				break;
-			case 22:
-				rc.setFlag(encodeFlag(0, 0, 0, 22));
-				break;
-			case 23:
-				rc.setFlag(encodeFlag(0, 0, 0, 23));
-				break;
-
+				case 20:
+					rc.setFlag(encodeFlag(0, 0, 0, 20));
+					break;
+				case 21:
+					rc.setFlag(encodeFlag(0, 0, 0, 21));
+					break;
+				case 22:
+					rc.setFlag(encodeFlag(0, 0, 0, 22));
+					break;
+				case 23:
+					rc.setFlag(encodeFlag(0, 0, 0, 23));
+					break;
 			}
 		}
 		if (rc.isReady()) {
@@ -914,7 +912,7 @@ public strictfp class RobotPlayer {
 		boolean isAtCorner = false;
 		int cornerNum = decodeFlag(rc.getFlag(rc.getID()))[3];
 		switch (cornerNum) {
-		case 20:
+		case 20://Go to top left
 			if (rc.canMove(Direction.NORTHWEST)) {
 				rc.move(Direction.NORTHWEST);
 				return;
@@ -924,7 +922,7 @@ public strictfp class RobotPlayer {
 			} else if (rc.canMove(Direction.WEST)) {
 				rc.move(Direction.WEST);
 				return;
-			} else {
+			} else {//Check if we're at the corner
 				MapLocation tempLoc = currentLoc;
 				tempLoc = tempLoc.add(Direction.NORTH);
 				tempLoc = tempLoc.add(Direction.NORTH);
@@ -953,7 +951,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			break;
-		case 21:
+		case 21:			//Go to top right
 			if (rc.canMove(Direction.NORTHEAST)) {
 				rc.move(Direction.NORTHEAST);
 				return;
@@ -992,7 +990,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			break;
-		case 22:
+		case 22:		//Go to bottom right
 			if (rc.canMove(Direction.SOUTHEAST)) {
 				rc.move(Direction.SOUTHEAST);
 				return;
@@ -1031,7 +1029,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			break;
-		case 23:
+		case 23:			//Go to bottom right
 			if (rc.canMove(Direction.SOUTHWEST)) {
 				rc.move(Direction.SOUTHWEST);
 				return;
@@ -1071,10 +1069,9 @@ public strictfp class RobotPlayer {
 			}
 			break;
 		}
-		if (isAtCorner) {
-			cornerNum = decodeFlag(rc.getFlag(rc.getID()))[3];
+
+		if (isAtCorner) //We've found a corner. Let the world know!
 			rc.setFlag(encodeFlag(6, currentLoc, cornerNum));
-		}
 	}
 
 	/**
