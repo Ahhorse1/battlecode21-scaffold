@@ -20,6 +20,15 @@ public strictfp class RobotPlayer {
 	static int[] shift = { schema[1] + schema[2] + schema[3], schema[2] + schema[3], schema[3] };
 
 	/**
+	 *
+	 */
+	static ArrayList<MapLocation> enemyECs=new ArrayList();
+	static ArrayList<MapLocation> friendlyECs=new ArrayList();
+	static ArrayList<MapLocation> neutralalECs=new ArrayList();
+
+
+
+	/**
 	 * Arraylist of arrays Each array is +1 size larger than it's supposed to be,
 	 * with the unit code in the 0 position The unit code being influence *10 +
 	 * (1/2/3) for (politicians/slanderers/muckrakers)
@@ -370,6 +379,11 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runMuckraker() throws GameActionException {
+		//Define some constants
+		int senseRadius =   RobotType.MUCKRAKER.detectionRadiusSquared;
+		int actionRadius=       RobotType.MUCKRAKER.actionRadiusSquared;
+
+		//First turn stuffs
 		if (turnCount == 1){
 			firstTurn();//Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
@@ -388,15 +402,113 @@ public strictfp class RobotPlayer {
 					break;
 			}
 		}
+
+		MapLocation targetDestination=rc.getLocation();//Set this to something if we got some place to go (i.e. go help out a bro)
+		boolean haveDestination=false;//Set this to true if we got some place to go
+
+		//1 Collect information from flag
+		if(rc.canGetFlag(enlightenmentCenterID)) {
+			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+			MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
+			switch (ECFlag[0]) {
+				case 1://enemy EC
+					if (!enemyECs.contains(loc))
+						enemyECs.add(loc);
+					if (friendlyECs.contains(loc))
+						friendlyECs.remove(loc);
+					if (neutralalECs.contains(loc))
+						neutralalECs.remove(loc);
+					break;
+				case 2: //neutral HQ
+					if (!neutralalECs.contains(loc))
+						neutralalECs.add(loc);
+					break;
+				case 3: //Friendly EC
+					if (!friendlyECs.contains(loc))
+						friendlyECs.add(loc);
+					if (enemyECs.contains(loc))
+						enemyECs.remove(loc);
+					if (neutralalECs.contains(loc))
+						neutralalECs.remove(loc);
+					break;
+				case 12: //A bro needs help (there's an enemy slanderer storm somewhere)
+					targetDestination=loc;
+					haveDestination=true;
+					break;
+			}
+		}
+
+		//2 scan surroundings
+		int enemySlandererCnt=0;
+		boolean flagSet=false;//Set this to true if we've already set our flag to something important
+		Team enemy = rc.getTeam().opponent();
+		for (RobotInfo robot : rc.senseNearbyRobots(senseRadius))
+			if (robot.getType().canBeExposed()) {
+				if(robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER))
+					enemySlandererCnt++;
+				else{
+					int[] flag=decodeFlag(rc.getFlag(robot.getID()));
+					if(flag[0]==12){
+						targetDestination=getMapLocation(flag[1],flag[2]);
+						haveDestination=true;
+					}
+				}
+			}else if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){
+				if(robot.getTeam().equals(enemy) && !enemyECs.contains(robot.getLocation())) {
+					//Found new enemy HQ
+					rc.setFlag(encodeFlag(1, robot.getLocation()));
+					flagSet=true;
+				}else if(robot.getTeam().equals(Team.NEUTRAL)){
+					//We've found a neutral enlightenment center!!!! Set flag at all costs
+					rc.setFlag(encodeFlag(2,robot.getLocation()));
+					flagSet=true;
+				}
+			}
+		if(enemySlandererCnt>=12 && flagSet==false) { //notificationCutoff is set at 12, can increase whenever
+			//If the number of enemies warrants calling for reinforcements and there's not more important info to send
+			rc.setFlag(encodeFlag(12, rc.getLocation()));
+		}
+
+		
 		if(isCornerRunner()){
 			int ECFlagMsg = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
-			if (ECFlagMsg>=30&&ECFlagMsg<=33)
-				rc.setFlag(0);
-			else
+			if (ECFlagMsg>=30&&ECFlagMsg<=33){//Means that EC has already found a flag
+				int[] flag=decodeFlag(rc.getFlag(rc.getID()));
+				rc.setFlag(encodeFlag(flag[0],flag[1],flag[2],0));
+			} else
 				findCorner();
 		}
 
+		//Now in action phase of muckraker logic
+		if(!rc.isReady())
+			return;
+
+		//Find a target to expose
+		for(RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy))
+			if(robot.getType().canBeExposed()&&rc.isReady()) {
+				rc.expose(robot.getLocation());
+				return;
+			}
+
+
+
+		//Move somewhere based on destination, then antigrouping, then randomly
+		if(haveDestination&&rc.canMove(rc.getLocation().directionTo(targetDestination)))
+			rc.move(rc.getLocation().directionTo(targetDestination));
+		else if(rc.canMove(antiGroupingMovement()))
+			rc.move(antiGroupingMovement());
+		else{
+			for(Direction dir : directions)
+				if(rc.canMove(dir)) {
+					rc.move(dir);
+					return;
+				}
+		}
+
 	}
+
+
+
 
 	/**
 	 * Moves the robot to lower-density areas based on which quadrants are emptier
@@ -409,74 +521,67 @@ public strictfp class RobotPlayer {
 		int selfX = rc.getLocation().x;
 		int selfY = rc.getLocation().y;
 		int actionRadius = rc.getType().actionRadiusSquared;
-		Team ally = rc.getTeam();
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
 		Boolean furtherX = false;
 		Boolean furtherY = false;
-		for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, ally)) {
+		RobotInfo[] nearby=rc.senseNearbyRobots(actionRadius,rc.getTeam());
+		for (RobotInfo robot : nearby) {
 			MapLocation location = robot.getLocation();
-			furtherX = location.x >= selfX;
-			furtherY = location.y >= selfY;
-			if (furtherX && furtherY) {
+			furtherX = (location.x >= selfX);
+			furtherY = (location.y >= selfY);
+			if (furtherX && furtherY)
 				quadrantOne++;
-			} else if (furtherX && !furtherY) {
+			else if (furtherX && !furtherY)
 				quadrantTwo++;
-			} else if (!furtherX && !furtherY) {
+			else if (!furtherX && !furtherY)
 				quadrantThree++;
-			} else {
+			else
 				quadrantFour++;
-			}
 		}
+		double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
+		double northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));
+		double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
+		double northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));
+		double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
+		double south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
+		double southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));
+		double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 		if (quadrantOne < quadrantTwo && quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
-			double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
-			double northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));
-			double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
-			if (north < northeast && north < east) {
-				return Direction.NORTH;
-			} else if (northeast < east) {
+			//Go to quadrant I
+			if (northeast<north && northeast < east)
 				return Direction.NORTHEAST;
-			} else {
+			else if (north < east)
+				return Direction.NORTH;
+			else
 				return Direction.EAST;
-			}
 		}
 		if (quadrantTwo < quadrantThree && quadrantTwo < quadrantFour) {
-			double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
-			double northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));
-			;
-			double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
-			if (north < northwest && north < west) {
-				return Direction.NORTH;
-			} else if (northwest < west) {
-				return Direction.NORTHWEST;
-			} else {
-				return Direction.WEST;
-			}
+			//Go to quadrant II
+			if (southeast < east && southeast < south)
+				return Direction.SOUTHEAST;
+			else if (south<east)
+				return Direction.SOUTH;
+			 else
+				return Direction.EAST;
 		}
 		if (quadrantThree < quadrantFour) {
-			double south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
-			double southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));
-			;
-			double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
-			if (south < southwest && south < west) {
-				return Direction.NORTH;
-			} else if (southwest < west) {
+			//Go to quadrant III
+			if (southwest<south && southwest < west)
 				return Direction.SOUTHWEST;
-			} else {
-				return Direction.WEST;
-			}
-		} else {
-			double south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
-			double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
-			;
-			double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
-			if (south < southeast && south < east) {
+			else if (south < west)
 				return Direction.SOUTH;
-			} else if (southeast < east) {
-				return Direction.SOUTHEAST;
-			} else {
-				return Direction.EAST;
-			}
+			else
+				return Direction.WEST;
 		}
+
+		//Go to quadrant IV
+		if (northwest<north && northwest < west)
+			return Direction.NORTHWEST;
+		else if (west < north)
+			return Direction.WEST;
+		else
+			return Direction.NORTH;
+
 	}
 // Enlightenment Center Methods Below
 
@@ -1224,8 +1329,28 @@ public strictfp class RobotPlayer {
 	 * @return returns a encoded flag
 	 * @ensures flag is properly coded
 	 */
-	static int encodeFlag(int type, int locationX, int locationY) {
-		return encodeFlag(type, locationX, locationY, 0);
+	static int encodeFlag(int type, int locationX, int locationY) throws GameActionException{
+		int extrema=0;
+		if(rc.canGetFlag(rc.getID()))
+			extrema=decodeFlag(rc.getFlag(rc.getID()))[3];
+		return encodeFlag(type, locationX, locationY, extrema);
+	}
+
+
+	/**
+	 * Encodes a message given the message type, MapLocation
+	 *
+	 * @param type, 0-15, is the number signifying the type of action
+	 * @param loc, MapLocation trying to be communicated
+	 * @return returns a encoded flag
+	 * @ensures flag is properly coded DOESN'T CHANGE THE extrma flag (good for corner runner)
+	 */
+	static int encodeFlag(int type, MapLocation loc) throws GameActionException{
+		int extrema=0;
+		if(rc.canGetFlag(rc.getID()))
+			extrema=decodeFlag(rc.getFlag(rc.getID()))[3];
+		return encodeFlag(type,loc.x % 128, loc.y % 128, decodeFlag((rc.getFlag(rc.getID())))[3]);
+
 	}
 
 	/**
