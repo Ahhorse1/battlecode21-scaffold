@@ -388,28 +388,14 @@ public strictfp class RobotPlayer {
 					break;
 			}
 		}
-		if (rc.isReady()) {
-			if (decodeFlag(rc.getFlag(enlightenmentCenterID))[3] >= 30) {
+		if(isCornerRunner()){
+			int ECFlagMsg = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
+			if (ECFlagMsg>=30&&ECFlagMsg<=33)
 				rc.setFlag(0);
-			}
-			if (isCornerRunner()) {
+			else
 				findCorner();
-
-			} else {
-				Team enemy = rc.getTeam().opponent();
-				int actionRadius = rc.getType().actionRadiusSquared;
-				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
-					if (robot.type.canBeExposed()) {
-						if (rc.canExpose(robot.location)) {
-							rc.expose(robot.location);
-							return;
-						}
-					}
-				}
-
-				tryMove(randomDirection());
-			}
 		}
+
 	}
 
 	/**
