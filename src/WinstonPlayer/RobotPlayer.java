@@ -275,7 +275,7 @@ public strictfp class RobotPlayer {
 			if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {// Found an EC
 				if (robot.getTeam().equals(Team.NEUTRAL) && !neutralECs.contains(loc)) {
 					neutralECs.add(loc);
-					rc.setFlag(encodeFlag(1, loc));
+					rc.setFlag(encodeFlag(2, loc));
 				} else if (robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)) {
 					friendlyECs.add(loc);
 					rc.setFlag(encodeFlag(3, loc));
@@ -283,6 +283,7 @@ public strictfp class RobotPlayer {
 						neutralECs.remove(loc);
 				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {
 					enemyECs.add(loc);
+					rc.setFlag(encodeFlag(1,loc));
 					if (neutralECs.contains(loc))
 						neutralECs.remove(loc);
 					if (friendlyECs.contains(loc))
