@@ -2,9 +2,12 @@ package WinstonPlayer;
 
 import battlecode.common.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public strictfp class RobotPlayer {
 	static RobotController rc;
+
+	static boolean isAtCorner = false;
 
 	static final RobotType[] spawnableRobot = { RobotType.POLITICIAN, RobotType.SLANDERER, RobotType.MUCKRAKER, };
 
@@ -163,39 +166,38 @@ public strictfp class RobotPlayer {
 			MapLocation loc;
 			for (int i = 0; i < unitIDs.size(); ++i) {
 				id = unitIDs.get(i);
-				if (rc.canGetFlag(id)) {
+				if (rc.canGetFlag(id) && (rc.getFlag(id) >> shift[0])>0) {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
-					if(flag[0]>0)
-						System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
+					System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
-					case 1:// enemy EC
-						if (!enemyECs.contains(loc))
-							enemyECs.add(loc);
-						if (friendlyECs.contains(loc))
-							friendlyECs.remove(loc);
-						if (neutralECs.contains(loc))
-							neutralECs.remove(loc);
-						break;
-					case 2: // neutral HQ
-						if (!neutralECs.contains(loc))
-							neutralECs.add(loc);
-						break;
-					case 3: // Friendly EC
-						if (!friendlyECs.contains(loc)) {
-							friendlyECs.add(loc);
-							rc.setFlag(encodeFlag(3, loc));
-						}
-						if (enemyECs.contains(loc))
-							enemyECs.remove(loc);
-						if (neutralECs.contains(loc)) {
-							neutralECs.remove(loc);
-						}
-						break;
-					case 12: // Slanderer storm
-						int myFlag = encodeFlag(12, loc);
-						if (rc.canSetFlag(myFlag))
-							rc.setFlag(myFlag);
+						case 1:// enemy EC
+							if (!enemyECs.contains(loc))
+								enemyECs.add(loc);
+							if (friendlyECs.contains(loc))
+								friendlyECs.remove(loc);
+							if (neutralECs.contains(loc))
+								neutralECs.remove(loc);
+							break;
+						case 2: // neutral HQ
+							if (!neutralECs.contains(loc))
+								neutralECs.add(loc);
+							break;
+						case 3: // Friendly EC
+							if (!friendlyECs.contains(loc)) {
+								friendlyECs.add(loc);
+								rc.setFlag(encodeFlag(3, loc));
+							}
+							if (enemyECs.contains(loc))
+								enemyECs.remove(loc);
+							if (neutralECs.contains(loc)) {
+								neutralECs.remove(loc);
+							}
+							break;
+						case 12: // Slanderer storm
+							int myFlag = encodeFlag(12, loc);
+							if (rc.canSetFlag(myFlag))
+								rc.setFlag(myFlag);
 
 					}
 				} else {
@@ -208,6 +210,8 @@ public strictfp class RobotPlayer {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
 		}
 
+		if(runCorner)
+			updateCorner();
 		if (turnCount <= 20) {
 			runStageOne();
 		} else if (turnCount <= 100) {
@@ -238,7 +242,7 @@ public strictfp class RobotPlayer {
 		if (turnCount == 1)
 			firstTurn();
 
-		if(decodeFlag(rc.getFlag(rc.getID()))[3]==10&&turnCount>=40)//Don't worry about lattic after a couple turns
+		if(decodeFlag(rc.getFlag(rc.getID()))[3]==10&&turnCount>=40)//Don't worry about lattice after a couple turns
 			rc.setFlag(encodeFlag(0,0,0,12));
 
 		Team enemy = rc.getTeam().opponent();
@@ -305,9 +309,9 @@ public strictfp class RobotPlayer {
 				latticeStructure();
 				return;
 			} else if (decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
-				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(4, enemy);
+				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(3, enemy);
 				if (attackableRadiusOne.length != 0)
-					rc.empower(4);
+					rc.empower(3);
 				return;
 			}
 		}
@@ -363,11 +367,7 @@ public strictfp class RobotPlayer {
 		}
 
 		//If all else fails, do something
-		for (Direction dir : directions)
-			if (rc.canMove(dir)) {
-				rc.move(dir);
-				return;
-			}
+		doRandomMove();
 
 
 	}
@@ -551,8 +551,12 @@ public strictfp class RobotPlayer {
 				if (flag[3] != ECFlagMsg) {
 					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 				}
-			} else
-				findCorner();
+			} else {
+				if(!isAtCorner) {
+					findCorner();
+				}
+				return;
+			}
 		}
 
 		// Now in action phase of muckraker logic
@@ -573,11 +577,7 @@ public strictfp class RobotPlayer {
 		else if (rc.canMove(antiGroupingMovement()))//Run antigrouping stuff
 			rc.move(antiGroupingMovement());
 		else {
-			for (Direction dir : directions)
-				if (rc.canMove(dir)) {
-					rc.move(dir);
-					return;
-				}
+			doRandomMove();
 		}
 
 	}
@@ -672,7 +672,9 @@ public strictfp class RobotPlayer {
 					}
 				}
 			}
-			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+			if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
+				runCorner();
+			} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
 				construct(RobotType.MUCKRAKER, 1);
 			}
 		}
@@ -991,8 +993,10 @@ public strictfp class RobotPlayer {
 		for (Direction dir : directions) {
 			if (rc.canBuildRobot(toBuild, dir, influence)) {
 				rc.buildRobot(toBuild, dir, influence);
-				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());// Store unit ID of created
-																						// thing
+				if(toBuild.equals(RobotType.POLITICIAN) || toBuild.equals(RobotType.MUCKRAKER)) {
+					unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());// Store unit ID
+					System.out.println("STORING ID");
+				}
 				return rc.adjacentLocation(dir);
 			}
 		}
@@ -1161,165 +1165,173 @@ public strictfp class RobotPlayer {
 	 */
 	static void findCorner() throws GameActionException {
 		MapLocation currentLoc = rc.getLocation();
-		boolean isAtCorner = false;
 		int cornerNum = decodeFlag(rc.getFlag(rc.getID()))[3];
 		switch (cornerNum) {
-		case 20:// Go to top left
-			if (rc.canMove(Direction.NORTHWEST)) {
-				rc.move(Direction.NORTHWEST);
-				return;
-			} else if (rc.canMove(Direction.NORTH)) {
-				rc.move(Direction.NORTH);
-				return;
-			} else if (rc.canMove(Direction.WEST)) {
-				rc.move(Direction.WEST);
-				return;
-			} else {// Check if we're at the corner
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.NORTH);
-				tempLoc = tempLoc.add(Direction.NORTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.WEST);
-				tempLoc = tempLoc.add(Direction.WEST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.NORTHEAST)) {
-						rc.move(Direction.NORTHEAST);
-						return;
-					} else if (rc.canMove(Direction.EAST)) {
-						rc.move(Direction.EAST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.SOUTHWEST)) {
-						rc.move(Direction.SOUTHWEST);
-						return;
-					} else if (rc.canMove(Direction.SOUTH)) {
-						rc.move(Direction.SOUTH);
-						return;
-					}
-				} else {
-					isAtCorner = true;
-					System.out.println("At Northwest Corner");
-				}
-			}
-			break;
-		case 21: // Go to top right
-			if (rc.canMove(Direction.NORTHEAST)) {
-				rc.move(Direction.NORTHEAST);
-				return;
-			} else if (rc.canMove(Direction.NORTH)) {
-				rc.move(Direction.NORTH);
-				return;
-			} else if (rc.canMove(Direction.EAST)) {
-				rc.move(Direction.EAST);
-				return;
-			} else {
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.NORTH);
-				tempLoc = tempLoc.add(Direction.NORTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.EAST);
-				tempLoc = tempLoc.add(Direction.EAST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.NORTHWEST)) {
-						rc.move(Direction.NORTHWEST);
-						return;
-					} else if (rc.canMove(Direction.WEST)) {
-						rc.move(Direction.WEST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.SOUTHEAST)) {
-						rc.move(Direction.SOUTHEAST);
-						return;
-					} else if (rc.canMove(Direction.SOUTH)) {
-						rc.move(Direction.SOUTH);
-						return;
-					}
-				} else {
-					isAtCorner = true;
-					System.out.println("At Northeast Corner");
-				}
-			}
-			break;
-		case 22: // Go to bottom right
-			if (rc.canMove(Direction.SOUTHEAST)) {
-				rc.move(Direction.SOUTHEAST);
-				return;
-			} else if (rc.canMove(Direction.SOUTH)) {
-				rc.move(Direction.SOUTH);
-				return;
-			} else if (rc.canMove(Direction.EAST)) {
-				rc.move(Direction.EAST);
-				return;
-			} else {
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.EAST);
-				tempLoc = tempLoc.add(Direction.EAST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.SOUTHWEST)) {
-						rc.move(Direction.SOUTHWEST);
-						return;
-					} else if (rc.canMove(Direction.WEST)) {
-						rc.move(Direction.WEST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.NORTHEAST)) {
-						rc.move(Direction.NORTHEAST);
-						return;
-					} else if (rc.canMove(Direction.NORTH)) {
-						rc.move(Direction.NORTH);
-						return;
-					}
-				} else {
-					isAtCorner = true;
-					System.out.println("At Southeast Corner");
-				}
-			}
-			break;
-		case 23: // Go to bottom right
-			if (rc.canMove(Direction.SOUTHWEST)) {
-				rc.move(Direction.SOUTHWEST);
-				return;
-			} else if (rc.canMove(Direction.SOUTH)) {
-				rc.move(Direction.SOUTH);
-				return;
-			} else if (rc.canMove(Direction.WEST)) {
-				rc.move(Direction.WEST);
-				return;
-			} else {
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.WEST);
-				tempLoc = tempLoc.add(Direction.WEST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.SOUTHEAST)) {
-						rc.move(Direction.SOUTHEAST);
-						return;
-					} else if (rc.canMove(Direction.EAST)) {
-						rc.move(Direction.EAST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
+			case 20:// Go to top left
+				if (rc.isReady()) {
 					if (rc.canMove(Direction.NORTHWEST)) {
 						rc.move(Direction.NORTHWEST);
 						return;
 					} else if (rc.canMove(Direction.NORTH)) {
 						rc.move(Direction.NORTH);
 						return;
+					} else if (rc.canMove(Direction.WEST)) {
+						rc.move(Direction.WEST);
+						return;
+					} else {// Check if we're at the corner
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.NORTH);
+						tempLoc = tempLoc.add(Direction.NORTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.WEST);
+						tempLoc2 = tempLoc2.add(Direction.WEST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.NORTHEAST)) {
+								rc.move(Direction.NORTHEAST);
+								return;
+							} else if (rc.canMove(Direction.EAST)) {
+								rc.move(Direction.EAST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.SOUTHWEST)) {
+								rc.move(Direction.SOUTHWEST);
+								return;
+							} else if (rc.canMove(Direction.SOUTH)) {
+								rc.move(Direction.SOUTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Northwest Corner");
+						}
 					}
-				} else {
-					isAtCorner = true;
-					System.out.println("At Southwest Corner");
 				}
-			}
-			break;
+				break;
+			case 21: // Go to top right
+				if (rc.isReady()) {
+					if (rc.canMove(Direction.NORTHEAST)) {
+						rc.move(Direction.NORTHEAST);
+						return;
+					} else if (rc.canMove(Direction.NORTH)) {
+						rc.move(Direction.NORTH);
+						return;
+					} else if (rc.canMove(Direction.EAST)) {
+						rc.move(Direction.EAST);
+						return;
+					} else {
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.NORTH);
+						tempLoc = tempLoc.add(Direction.NORTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.EAST);
+						tempLoc2 = tempLoc2.add(Direction.EAST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.NORTHWEST)) {
+								rc.move(Direction.NORTHWEST);
+								return;
+							} else if (rc.canMove(Direction.WEST)) {
+								rc.move(Direction.WEST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.SOUTHEAST)) {
+								rc.move(Direction.SOUTHEAST);
+								return;
+							} else if (rc.canMove(Direction.SOUTH)) {
+								rc.move(Direction.SOUTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Northeast Corner");
+						}
+					}
+				}
+				break;
+			case 22: // Go to bottom right
+				if (rc.isReady()) {
+					if (rc.canMove(Direction.SOUTHEAST)) {
+						rc.move(Direction.SOUTHEAST);
+						return;
+					} else if (rc.canMove(Direction.SOUTH)) {
+						rc.move(Direction.SOUTH);
+						return;
+					} else if (rc.canMove(Direction.EAST)) {
+						rc.move(Direction.EAST);
+						return;
+					} else {
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.EAST);
+						tempLoc2 = tempLoc2.add(Direction.EAST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.SOUTHWEST)) {
+								rc.move(Direction.SOUTHWEST);
+								return;
+							} else if (rc.canMove(Direction.WEST)) {
+								rc.move(Direction.WEST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.NORTHEAST)) {
+								rc.move(Direction.NORTHEAST);
+								return;
+							} else if (rc.canMove(Direction.NORTH)) {
+								rc.move(Direction.NORTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Southeast Corner");
+						}
+					}
+				}
+				break;
+			case 23: // Go to bottom right
+				if (rc.isReady()) {
+					if (rc.canMove(Direction.SOUTHWEST)) {
+						rc.move(Direction.SOUTHWEST);
+						return;
+					} else if (rc.canMove(Direction.SOUTH)) {
+						rc.move(Direction.SOUTH);
+						return;
+					} else if (rc.canMove(Direction.WEST)) {
+						rc.move(Direction.WEST);
+						return;
+					} else {
+						MapLocation tempLoc = currentLoc;
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						tempLoc = tempLoc.add(Direction.SOUTH);
+						MapLocation tempLoc2 = currentLoc;
+						tempLoc2 = tempLoc2.add(Direction.WEST);
+						tempLoc2 = tempLoc2.add(Direction.WEST);
+						if (rc.canSenseLocation(tempLoc)) {
+							if (rc.canMove(Direction.SOUTHEAST)) {
+								rc.move(Direction.SOUTHEAST);
+								return;
+							} else if (rc.canMove(Direction.EAST)) {
+								rc.move(Direction.EAST);
+								return;
+							}
+						} else if (rc.canSenseLocation(tempLoc2)) {
+							if (rc.canMove(Direction.NORTHWEST)) {
+								rc.move(Direction.NORTHWEST);
+								return;
+							} else if (rc.canMove(Direction.NORTH)) {
+								rc.move(Direction.NORTH);
+								return;
+							}
+						} else {
+							isAtCorner = true;
+							System.out.println("At Southwest Corner");
+						}
+					}
+				}
+				break;
+
 		}
 
 		if (isAtCorner) // We've found a corner. Let the world know!
@@ -1351,7 +1363,6 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void runCorner() throws GameActionException {
-		int flag = rc.getFlag(rc.getID());
 		for (int i = 0; i < cornerRunnerIDs.length; i++) {
 			if (rc.canGetFlag(cornerRunnerIDs[i])) {
 				int[] tempFlag = decodeFlag(rc.getFlag(cornerRunnerIDs[i]));
@@ -1367,8 +1378,8 @@ public strictfp class RobotPlayer {
 		for (int i = 0; i < makeCornerRunner.length; i++) {
 			if (makeCornerRunner[i]) {
 				for (Direction dir : directions) {
-					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 10)) {
-						rc.buildRobot(RobotType.MUCKRAKER, dir, 10);
+					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
+						rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
 						System.out.println("Built CornerRunner");
 						makeCornerRunner[i] = false;
 						rc.setFlag(encodeFlag(0, 0, 0, i + 20));
@@ -1389,18 +1400,24 @@ public strictfp class RobotPlayer {
 			runCorner = false;
 			closestCorner = closestCorner(mapCorners);
 			int[] myFlag = decodeFlag(rc.getFlag(rc.getID()));
-			rc.setFlag(encodeFlag(myFlag[0], myFlag[1], myFlag[2], closestCorner + 20));
+			rc.setFlag(encodeFlag(myFlag[0], myFlag[1], myFlag[2], closestCorner + 30));
 		}
 	}
 
+
+
+	/**
+	 *
+	 */
 	static void updateCorner() throws GameActionException {
-		int flag = rc.getFlag(rc.getID());
+
 		for (int i = 0; i < cornerRunnerIDs.length; i++) {
 			if (rc.canGetFlag(cornerRunnerIDs[i])) {
 				int[] tempFlag = decodeFlag(rc.getFlag(cornerRunnerIDs[i]));
 				if (tempFlag[0] == 6)// corner has been found
 				{
 					atCorner[i] = true;
+					System.out.println("FOUND CORNER: " + i);
 					mapCorners[i] = getMapLocation(tempFlag[1], tempFlag[2]);
 				}
 			} else {
@@ -1414,10 +1431,12 @@ public strictfp class RobotPlayer {
 				tempCounter++;
 		}
 		if (tempCounter >= 2) {
+			System.out.println("FOUND >TWO CORNERs:" + Arrays.toString(atCorner));
+			System.out.println("MAPCORNERS: " + Arrays.toString(mapCorners));
+			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 			runCorner = false;
 			closestCorner = closestCorner(mapCorners);
-			rc.setFlag(encodeFlag(6, mapCorners[closestCorner].x % 128, mapCorners[closestCorner].y % 128,
-					closestCorner + 20));
+			rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], closestCorner + 30));
 		}
 	}
 
@@ -1548,14 +1567,14 @@ public strictfp class RobotPlayer {
 		else if(xDif<=-64)
 			loc = loc.translate((128 + xDif) % 64, 0);
 		else//larger than 64
-			loc=loc.translate((-128 -xDif)%64,0);
+			loc=loc.translate((-128 + xDif)%64,0);
 
 		if (yDif < 64 && yDif > -64)
 			loc = loc.translate(0, yDif);
 		else if(yDif<=-64)
 			loc = loc.translate(0, (128 + yDif) % 64); //eg, -96 means up 32
 		else
-			loc=loc.translate(0,(-128 -yDif)%64);
+			loc=loc.translate(0,(-128 + yDif)%64);
 
 
 		return loc;
@@ -1617,4 +1636,18 @@ public strictfp class RobotPlayer {
 			return false;
 	}
 
+
+	/** Does a random move. Attempts all directions
+	 *
+	 */
+	static void doRandomMove() throws GameActionException{
+		int start=(int) (Math.random() * directions.length);
+		Direction dir;
+		for(int i=0;i<directions.length;i++){
+			dir=directions[(i+start)%directions.length];
+			if(rc.canMove(dir))
+				rc.move(dir);
+		}
+
+	}
 }
