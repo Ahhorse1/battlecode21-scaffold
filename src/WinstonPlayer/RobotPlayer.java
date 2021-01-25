@@ -239,7 +239,7 @@ public strictfp class RobotPlayer {
 		if (turnCount == 1)
 			firstTurn();
 
-		if(decodeFlag(rc.getFlag(rc.getID()))[3]==10&&turnCount>=8)//Don't worry about lattic after a couple turns
+		if(decodeFlag(rc.getFlag(rc.getID()))[3]==10&&turnCount>=40)//Don't worry about lattic after a couple turns
 			rc.setFlag(encodeFlag(0,0,0,12));
 
 		Team enemy = rc.getTeam().opponent();
@@ -571,7 +571,7 @@ public strictfp class RobotPlayer {
 		// Move somewhere based on destination, then antigrouping, then randomly
 		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
 			rc.move(rc.getLocation().directionTo(targetDestination));
-		else if (rc.canMove(antiGroupingMovement()))
+		else if (rc.canMove(antiGroupingMovement()))//Run antigrouping stuff
 			rc.move(antiGroupingMovement());
 		else {
 			for (Direction dir : directions)
@@ -594,7 +594,7 @@ public strictfp class RobotPlayer {
 		int selfX = rc.getLocation().x;
 		int selfY = rc.getLocation().y;
 		int actionRadius = rc.getType().actionRadiusSquared;
-		int sensorRadius= = rc.getType().sensorRadiusSquared;
+		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
 		Boolean furtherX = false;
 		Boolean furtherY = false;
@@ -623,36 +623,36 @@ public strictfp class RobotPlayer {
 		double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 		if (quadrantOne < quadrantTwo && quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
 			// Go to quadrant I
-			if (northeast < north && northeast < east)
+			if (northeast > north && northeast > east)
 				return Direction.NORTHEAST;
-			else if (north < east)
+			else if (north > east)
 				return Direction.NORTH;
 			else
 				return Direction.EAST;
 		}
 		if (quadrantTwo < quadrantThree && quadrantTwo < quadrantFour) {
 			// Go to quadrant II
-			if (southeast < east && southeast < south)
+			if (southeast > east && southeast > south)
 				return Direction.SOUTHEAST;
-			else if (south < east)
+			else if (south > east)
 				return Direction.SOUTH;
 			else
 				return Direction.EAST;
 		}
 		if (quadrantThree < quadrantFour) {
 			// Go to quadrant III
-			if (southwest < south && southwest < west)
+			if (southwest > south && southwest > west)
 				return Direction.SOUTHWEST;
-			else if (south < west)
+			else if (south > west)
 				return Direction.SOUTH;
 			else
 				return Direction.WEST;
 		}
 
 		// Go to quadrant IV
-		if (northwest < north && northwest < west)
+		if (northwest > north && northwest > west)
 			return Direction.NORTHWEST;
-		else if (west < north)
+		else if (west > north)
 			return Direction.WEST;
 		else
 			return Direction.NORTH;
