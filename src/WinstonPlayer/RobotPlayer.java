@@ -164,41 +164,42 @@ public strictfp class RobotPlayer {
 			int id;
 			int[] flag;
 			MapLocation loc;
-			for (int i = 0; i < unitIDs.size(); ++i) {
+			for (int i = 0; i < unitIDs.size(); i++) {
 				id = unitIDs.get(i);
 				if (rc.canGetFlag(id)) {
-					flag = decodeFlag(rc.getFlag(id));
-					loc = getMapLocation(flag[1], flag[2]);
-					System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
-					switch (flag[0]) {
-						case 1:// enemy EC
-							if (!enemyECs.contains(loc))
-								enemyECs.add(loc);
-							if (friendlyECs.contains(loc))
-								friendlyECs.remove(loc);
-							if (neutralECs.contains(loc))
-								neutralECs.remove(loc);
-							break;
-						case 2: // neutral HQ
-							if (!neutralECs.contains(loc))
-								neutralECs.add(loc);
-							break;
-						case 3: // Friendly EC
-							if (!friendlyECs.contains(loc)) {
-								friendlyECs.add(loc);
-								rc.setFlag(encodeFlag(3, loc));
-							}
-							if (enemyECs.contains(loc))
-								enemyECs.remove(loc);
-							if (neutralECs.contains(loc)) {
-								neutralECs.remove(loc);
-							}
-							break;
-						case 12: // Slanderer storm
-							int myFlag = encodeFlag(12, loc);
-							if (rc.canSetFlag(myFlag))
-								rc.setFlag(myFlag);
-
+					flag=decodeFlag(rc.getFlag(id));
+					if(flag[0]>0){
+						loc = getMapLocation(flag[1], flag[2]);
+						System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
+						switch (flag[0]) {
+							case 1:// enemy EC
+								if (!enemyECs.contains(loc))
+									enemyECs.add(loc);
+								if (friendlyECs.contains(loc))
+									friendlyECs.remove(loc);
+								if (neutralECs.contains(loc))
+									neutralECs.remove(loc);
+								break;
+							case 2: // neutral HQ
+								if (!neutralECs.contains(loc))
+									neutralECs.add(loc);
+								break;
+							case 3: // Friendly EC
+								if (!friendlyECs.contains(loc)) {
+									friendlyECs.add(loc);
+									rc.setFlag(encodeFlag(3, loc));
+								}
+								if (enemyECs.contains(loc))
+									enemyECs.remove(loc);
+								if (neutralECs.contains(loc)) {
+									neutralECs.remove(loc);
+								}
+								break;
+							case 12: // Slanderer storm
+								int myFlag = encodeFlag(12, loc);
+								if (rc.canSetFlag(myFlag))
+									rc.setFlag(myFlag);
+						}
 					}
 				} else {
 					unitIDs.remove(i);// This means the robot went bye-bye
