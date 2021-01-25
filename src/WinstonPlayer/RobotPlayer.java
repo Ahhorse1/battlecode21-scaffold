@@ -993,10 +993,7 @@ public strictfp class RobotPlayer {
 		for (Direction dir : directions) {
 			if (rc.canBuildRobot(toBuild, dir, influence)) {
 				rc.buildRobot(toBuild, dir, influence);
-				if(toBuild.equals(RobotType.POLITICIAN) || toBuild.equals(RobotType.MUCKRAKER)) {
-					unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());// Store unit ID
-					System.out.println("STORING ID");
-				}
+				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());// Store unit ID
 				return rc.adjacentLocation(dir);
 			}
 		}
