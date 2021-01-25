@@ -107,7 +107,7 @@ public strictfp class RobotPlayer {
 	 */
 	static int[] breakpoints = { 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
 			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
-	
+
 	static int[] breakpointsv2 = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
 			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
 
@@ -155,7 +155,6 @@ public strictfp class RobotPlayer {
 					runMuckraker();
 					break;
 				}
-
 				// Clock.yield() makes the robot wait until the next turn, then it will perform
 				// this loop again
 				Clock.yield();
@@ -371,7 +370,9 @@ public strictfp class RobotPlayer {
 		if (attackable.length > 0) {
 			for (int i = 0; i < attackable.length; i++) {
 				if (attackable[i].getLocation().isWithinDistanceSquared(currentLoc, 2)) {
-					rc.empower(2);
+					if(rc.isReady()) {
+						rc.empower(2);
+					}
 				}
 				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
 					if (rc.isReady()) {
@@ -400,7 +401,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		
+
 		// If all else fails, do something
 		doRandomMove();
 
@@ -797,7 +798,7 @@ public strictfp class RobotPlayer {
 		 */
 	}
 
-	
+
 	static void runStageFour() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageFourMode) {
@@ -813,7 +814,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 
-	
+
 	static void runStageFive() throws GameActionException {
 		/**
 		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
@@ -857,7 +858,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 
-	
+
 	static void runStageSix() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageSixMode) {
@@ -880,7 +881,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 
-	
+
 	static void runStageSeven() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
@@ -914,7 +915,7 @@ public strictfp class RobotPlayer {
 			}
 		}
 	}
-	
+
 	static void runCapturedStage() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
@@ -953,7 +954,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		}
 	}
-	
+
 	static int nearestBreakpoint() throws GameActionException {
 		for (int i = 1; i < breakpoints.length; i++) {
 			if (breakpoints[i] > rc.getInfluence()) {
