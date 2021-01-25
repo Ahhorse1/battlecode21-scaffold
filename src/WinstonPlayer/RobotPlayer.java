@@ -276,8 +276,19 @@ public strictfp class RobotPlayer {
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
 		int sensorRadius = rc.getType().sensorRadiusSquared;
-		int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
-
+		int[] ecFlag = new int[1];
+		try {
+			ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+		}
+		//Politicians that can't figure out where the original enlightenment center came from, commit suicide
+		catch(Exception e)
+		{
+				if(rc.isReady())
+				{
+					rc.empower(1);
+				}
+				return;
+		}
 
 		// Update info from EC
 		MapLocation loc = getMapLocation(ecFlag[1], ecFlag[2]);
@@ -684,6 +695,13 @@ public strictfp class RobotPlayer {
 		if (rc.canSenseLocation(rc.adjacentLocation(Direction.SOUTHEAST)))
 			southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 
+		if(quadrantOne == quadrantTwo && quadrantTwo == quadrantThree && quadrantThree == quadrantFour)
+		{
+			quadrantOne = (int) (Math.random()+1)*10;
+			quadrantTwo = (int) (Math.random()+1)*10;
+			quadrantThree = (int) (Math.random()+1)*10;
+			quadrantFour = (int) (Math.random()+1)*10;
+		}
 		if (rc.canSenseLocation(rc.getLocation().translate(2, 2)) && quadrantOne < quadrantTwo
 				&& quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
 			// Go to quadrant I assuming that it's on the map
@@ -693,8 +711,8 @@ public strictfp class RobotPlayer {
 				return Direction.NORTH;
 			return Direction.EAST;
 		}
-		if (rc.canSenseLocation(rc.getLocation().translate(2, -2)) && quadrantTwo < quadrantThree
-				&& quadrantTwo < quadrantFour) {
+		if (rc.canSenseLocation(rc.getLocation().translate(2, -2)) && quadrantTwo <= quadrantThree
+				&& quadrantTwo <= quadrantFour) {
 			// Go to quadrant II assuming it's not walled off
 			if (southeast > east && southeast > south)
 				return Direction.SOUTHEAST;
@@ -702,7 +720,7 @@ public strictfp class RobotPlayer {
 				return Direction.SOUTH;
 			return Direction.EAST;
 		}
-		if (rc.canSenseLocation(rc.getLocation().translate(-2, -2)) && quadrantThree < quadrantFour) {
+		if (rc.canSenseLocation(rc.getLocation().translate(-2, -2)) && quadrantThree <= quadrantFour) {
 			// Go to quadrant III assuming it's within the map
 			if (southwest > south && southwest > west)
 				return Direction.SOUTHWEST;
