@@ -264,8 +264,10 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runPolitician() throws GameActionException {
-		if (turnCount == 1)
+		if (turnCount == 1 && rc.getFlag(rc.getID()) == 0)
 			firstTurn();
+		else if(turnCount == 1)
+			convertedPolitician();
 
 		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40)// Don't worry about lattice after a couple
 																			// turns
@@ -275,6 +277,7 @@ public strictfp class RobotPlayer {
 		MapLocation currentLoc = rc.getLocation();
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int[] ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+
 
 		// Update info from EC
 		MapLocation loc = getMapLocation(ecFlag[1], ecFlag[2]);
@@ -418,7 +421,7 @@ public strictfp class RobotPlayer {
 		if (turnCount == 100)
 			rc.setFlag(10);
 		if (turnCount == 299)
-			rc.setFlag(0);
+			rc.setFlag(enlightenmentCenterID);
 		if (!rc.isReady())
 			return;
 		if (cornerNum == 0) {
@@ -486,6 +489,11 @@ public strictfp class RobotPlayer {
 
 	}
 
+	static void convertedPolitician() throws GameActionException
+	{
+		enlightenmentCenterID = rc.getFlag(rc.getID());
+		rc.setFlag(0);
+	}
 	static void runMuckraker() throws GameActionException {
 		// Define some constants
 		int senseRadius = RobotType.MUCKRAKER.detectionRadiusSquared;
