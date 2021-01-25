@@ -190,7 +190,6 @@ public strictfp class RobotPlayer {
 							enemyECs.remove(loc);
 						if (neutralECs.contains(loc)) {
 							neutralECs.remove(loc);
-							System.out.println("DELETING A neutral EC from list");
 						}
 						break;
 					case 12: // Slanderer storm
@@ -561,7 +560,7 @@ public strictfp class RobotPlayer {
 			return;
 
 		// Find a target to expose
-		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius,enemy)
+		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius,enemy);
 		for (RobotInfo robot : nearby)
 			if (robot.getType().canBeExposed() && rc.isReady()) {
 				rc.expose(robot.getLocation());
