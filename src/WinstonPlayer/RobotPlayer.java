@@ -115,6 +115,8 @@ public strictfp class RobotPlayer {
 
 	static int politicianMission = 0;
 
+	static boolean swarmMuckraker = false;
+
 	static boolean isCapturedEC = false;
 
 	/**
@@ -177,7 +179,7 @@ public strictfp class RobotPlayer {
 			int id;
 			int[] flag;
 			MapLocation loc;
-			for (int i = 0; i < unitIDs.size(); ++i) {
+			for (int i = 0; i < unitIDs.size(); i++) {
 				id = unitIDs.get(i);
 				if (rc.canGetFlag(id)) {
 					flag = decodeFlag(rc.getFlag(id));
@@ -221,7 +223,8 @@ public strictfp class RobotPlayer {
 						int myFlag = encodeFlag(12, loc);
 						if (rc.canSetFlag(myFlag))
 							rc.setFlag(myFlag);
-
+					case 15:
+						unitIDs.remove(i);
 					}
 				} else {
 					unitIDs.remove(i);// This means the robot went bye-bye
@@ -229,8 +232,10 @@ public strictfp class RobotPlayer {
 			}
 		}
 		// Actually set the flag
-		if (neutralECs.size() > 0) {
+		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
+		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
+			rc.setFlag(encodeFlag(2, enemyECs.get(0)));
 		}
 
 		if (runCorner)
@@ -249,6 +254,10 @@ public strictfp class RobotPlayer {
 			runStageSix();
 		} else {
 			runStageSeven();
+		}
+		
+		if(turnCount == 1490) {
+			rc.setFlag(encodeFlag(14,0,0,0));
 		}
 	}
 
@@ -272,44 +281,49 @@ public strictfp class RobotPlayer {
 			convertedPolitician();
 
 		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40) {// Don't worry about lattice after a couple
-																			// turns
+																				// turns
 			rc.setFlag(encodeFlag(0, 0, 0, 12));
 			politicianMission = 12;
 		}
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
-		MapLocation loc=currentLoc;//Stores info temporarily
+		MapLocation loc = currentLoc;// Stores info temporarily
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int[] ecFlag = new int[1];
 
 		// Update info from EC
-		if(rc.canGetFlag(enlightenmentCenterID)) {
+		if (rc.canGetFlag(enlightenmentCenterID)) {
 			ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			loc = getMapLocation(ecFlag[1], ecFlag[2]);
 			switch (ecFlag[0]) {
-				case 1:// enemy EC
-					if (!enemyECs.contains(loc))
-						enemyECs.add(loc);
-					if (friendlyECs.contains(loc))
-						friendlyECs.remove(loc);
-					if (neutralECs.contains(loc))
-						neutralECs.remove(loc);
-					break;
-				case 2: // neutral HQ
-					if (!neutralECs.contains(loc))
-						neutralECs.add(loc);
-					break;
-				case 3: // Friendly EC
-					if (!friendlyECs.contains(loc))
-						friendlyECs.add(loc);
-					if (enemyECs.contains(loc))
-						enemyECs.remove(loc);
-					if (neutralECs.contains(loc))
-						neutralECs.remove(loc);
-					break;
+			case 1:// enemy EC
+				if (!enemyECs.contains(loc))
+					enemyECs.add(loc);
+				if (friendlyECs.contains(loc))
+					friendlyECs.remove(loc);
+				if (neutralECs.contains(loc))
+					neutralECs.remove(loc);
+				break;
+			case 2: // neutral HQ
+				if (!neutralECs.contains(loc))
+					neutralECs.add(loc);
+				break;
+			case 3: // Friendly EC
+				if (!friendlyECs.contains(loc))
+					friendlyECs.add(loc);
+				if (enemyECs.contains(loc))
+					enemyECs.remove(loc);
+				if (neutralECs.contains(loc))
+					neutralECs.remove(loc);
+				break;
+			case 14:
+				RobotInfo[] nearby = rc.senseNearbyRobots(rc.getType().actionRadiusSquared, enemy);
+				if(nearby.length > 0) {
+					rc.empower(rc.getType().actionRadiusSquared);
+				}
 			}
-		}else{
-			enlightenmentCenterID=0;
+		} else {
+			enlightenmentCenterID = 0;
 		}
 		// Scan nearby robots, update stuff
 		RobotInfo[] nearby = rc.senseNearbyRobots(sensorRadius);
@@ -352,15 +366,15 @@ public strictfp class RobotPlayer {
 					rc.empower(3);
 				return;
 			}
-		}else
-			return; //Everything following this is action based
+		} else
+			return; // Everything following this is action based
 
 		// Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
 			loc = neutralECs.get(0);
-			int dist=currentLoc.distanceSquaredTo(loc);
+			int dist = currentLoc.distanceSquaredTo(loc);
 			if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length == 1)) {
-				//Empower if we're close enough or if nothing's in the way
+				// Empower if we're close enough or if nothing's in the way
 				rc.empower(dist);
 				return;
 			} else if (rc.canMove(currentLoc.directionTo(loc))) {
@@ -407,12 +421,14 @@ public strictfp class RobotPlayer {
 		doRandomMove();
 
 	}
-	static int encodeNeutralECInfluence(int x){
+
+	static int encodeNeutralECInfluence(int x) {
 		int commInf = 39 + x / 50;
 		if (x % 50 != 0 || x < 50)
 			commInf++;
 		return commInf;
 	}
+
 	static void runSlanderer() throws GameActionException {
 		int ECFlag;
 		if (turnCount == 1) {
@@ -529,6 +545,89 @@ public strictfp class RobotPlayer {
 		MapLocation targetDestination = rc.getLocation();// Set this to something if we got some place to go (i.e. go
 															// help out a bro)
 		boolean haveDestination = false;// Set this to true if we got some place to go
+
+		if (turnCount == 150) {
+			swarmMuckraker = true;
+			rc.setFlag(encodeFlag(15, 0, 0, 0));
+			if (rc.canGetFlag(enlightenmentCenterID)) {
+				int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+				MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
+				if (ECFlag[0] == 1)
+					if (!enemyECs.contains(loc))
+						enemyECs.add(loc);
+
+			}
+			if (enemyECs.size() > 0) {
+				int random = (int) ((Math.random() + .1) * enemyECs.size());
+				targetDestination = enemyECs.get(random);
+				hasDestination = true;
+			} else {
+				Team enemy = rc.getTeam().opponent();
+				for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
+					if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+						targetDestination = robot.getLocation();
+						hasDestination = true;
+					}
+				}
+			}
+		}
+
+		if (swarmMuckraker) {
+			MapLocation currentLoc = rc.getLocation();
+			if (!hasDestination) {
+				if (rc.canGetFlag(enlightenmentCenterID)) {
+					int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+					MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
+					if (ECFlag[0] == 1)
+						if (!enemyECs.contains(loc))
+							enemyECs.add(loc);
+
+				}
+				if (enemyECs.size() > 0) {
+					int random = (int) ((Math.random() + .1) * enemyECs.size());
+					targetDestination = enemyECs.get(random);
+					hasDestination = true;
+				} else {
+					Team enemy = rc.getTeam().opponent();
+					for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
+						if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+							targetDestination = robot.getLocation();
+							hasDestination = true;
+						}
+					}
+				}
+			} else if (rc.isReady()) {
+
+				Team enemy = rc.getTeam().opponent();
+				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
+					if (robot.getType().canBeExposed()) {
+						if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER)) {
+							rc.expose(robot.ID);
+							return;
+						}
+					}
+				}
+
+				if (hasDestination) {
+					System.out.println("Am Swarming" + targetDestination.x + ", " + targetDestination.y);
+					if (rc.canMove(currentLoc.directionTo(targetDestination))) {
+						rc.move(currentLoc.directionTo(targetDestination));
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateLeft())) {
+						rc.move(currentLoc.directionTo(targetDestination).rotateLeft());
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateRight())) {
+						rc.move(currentLoc.directionTo(targetDestination).rotateRight());
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateLeft().rotateLeft())) {
+						rc.move(currentLoc.directionTo(targetDestination).rotateLeft().rotateLeft());
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateRight().rotateRight())) {
+						rc.move(currentLoc.directionTo(targetDestination).rotateRight().rotateRight());
+					}
+				}
+
+			}
+
+			doRandomMove();
+			return;
+		}
 
 		// 1 Collect information from ECflag
 		if (rc.canGetFlag(enlightenmentCenterID)) {
@@ -683,12 +782,11 @@ public strictfp class RobotPlayer {
 		if (rc.canSenseLocation(rc.adjacentLocation(Direction.SOUTHEAST)))
 			southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 
-		if(quadrantOne == quadrantTwo && quadrantTwo == quadrantThree && quadrantThree == quadrantFour)
-		{
-			quadrantOne = (int) (Math.random()+1)*10;
-			quadrantTwo = (int) (Math.random()+1)*10;
-			quadrantThree = (int) (Math.random()+1)*10;
-			quadrantFour = (int) (Math.random()+1)*10;
+		if (quadrantOne == quadrantTwo && quadrantTwo == quadrantThree && quadrantThree == quadrantFour) {
+			quadrantOne = (int) (Math.random() + 1) * 10;
+			quadrantTwo = (int) (Math.random() + 1) * 10;
+			quadrantThree = (int) (Math.random() + 1) * 10;
+			quadrantFour = (int) (Math.random() + 1) * 10;
 		}
 		if (rc.canSenseLocation(rc.getLocation().translate(2, 2)) && quadrantOne < quadrantTwo
 				&& quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
@@ -805,16 +903,18 @@ public strictfp class RobotPlayer {
 			if (rc.getInfluence() >= neutralInfluence) {
 				if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
 					construct(RobotType.POLITICIAN, neutralInfluence);
-					nECpoliticians++;
+				nECpoliticians++;
 			}
 		}
 		if (canConstruct(RobotType.MUCKRAKER, 1)) {
 			construct(RobotType.MUCKRAKER, 1);
 		}
 
-		if (rc.canBid(10)) {
+		if (rc.canBid(10) && rc.getInfluence() > 250) {
 			int random = (int) ((Math.random() + .1) * 10);
 			rc.bid(random);
+		} else if (rc.canBid(1)) {
+			rc.bid(1);
 		}
 		/**
 		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
@@ -844,10 +944,14 @@ public strictfp class RobotPlayer {
 		if (canConstruct(RobotType.MUCKRAKER, 1))
 			construct(RobotType.MUCKRAKER, 1);
 
-		if (rc.canBid(10)) {
+		if (rc.canBid(10) && rc.getInfluence() > 100) {
 			int random = (int) ((Math.random() + .1) * 10);
 			rc.bid(random);
+		} else if (rc.canBid(1)) {
+			rc.bid(1);
 		}
+
+		nECpoliticians = 0;
 	}
 
 	static void runStageFive() throws GameActionException {
@@ -859,15 +963,12 @@ public strictfp class RobotPlayer {
 		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
 		 * }
 		 */
-		if (neutralECs.size() > 0) {
-			if (rc.isReady()) {
-				int neutralInfluence = neutralECInf.get(nECpoliticians) * 50 + 10;
-				if (rc.getInfluence() >= neutralInfluence) {
-					if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
-						construct(RobotType.POLITICIAN, neutralInfluence);
-				} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
-					construct(RobotType.MUCKRAKER, 1);
-				}
+		if (neutralECs.size() > nECpoliticians) {
+			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
+			if (rc.getInfluence() >= neutralInfluence) {
+				if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
+					construct(RobotType.POLITICIAN, neutralInfluence);
+				nECpoliticians++;
 			}
 		}
 
@@ -891,8 +992,11 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(25)) {
+		if (rc.canBid(25) && rc.getInfluence() > 125) {
 			int random = (int) ((Math.random() + .1) * 25);
+			rc.bid(random);
+		} else if (rc.canBid(5)) {
+			int random = (int) ((Math.random() + .1) * 5);
 			rc.bid(random);
 		}
 	}
@@ -918,8 +1022,11 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(50)) {
+		if (rc.canBid(50) && rc.getInfluence() > 250) {
 			int random = (int) ((Math.random() + .1) * 50);
+			rc.bid(random);
+		} else if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
 			rc.bid(random);
 		}
 	}
@@ -957,8 +1064,11 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(100)) {
+		if (rc.canBid(100) && rc.getInfluence() > 500) {
 			int random = (int) ((Math.random() + .1) * 100);
+			rc.bid(random);
+		} else if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
 			rc.bid(random);
 		}
 	}
