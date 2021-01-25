@@ -108,12 +108,15 @@ public strictfp class RobotPlayer {
 	static int[] breakpoints = { 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
 			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
 
-	static int[] breakpointsv2 = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
-			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
+	static int[] breakpointsv2 = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463,
+			497, 532, 605, 643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
 
 	static int nECpoliticians = 0;
 
+	static int politicianMission = 0;
+
 	static boolean isCapturedEC = false;
+
 	/**
 	 * run() is the method that is called when a robot is instantiated in the
 	 * Battlecode world. If this method returns, the robot dies!
@@ -139,10 +142,9 @@ public strictfp class RobotPlayer {
 				case ENLIGHTENMENT_CENTER:
 					if (turnCount == 1 && rc.getInfluence() != 150)
 						isCapturedEC = true;
-					if(isCapturedEC) {
+					if (isCapturedEC) {
 						runCapturedStage();
-					}
-					else
+					} else
 						runEnlightenmentCenter();
 					break;
 				case POLITICIAN:
@@ -181,7 +183,7 @@ public strictfp class RobotPlayer {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
 
-					//System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
+					// System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
 					case 1:// enemy EC
 						if (!enemyECs.contains(loc))
@@ -252,7 +254,7 @@ public strictfp class RobotPlayer {
 
 	static void runCapturedEnlightenmentCenter() throws GameActionException {
 		if (turnCount <= 20) {
-			if(rc.isReady()) {
+			if (rc.isReady()) {
 				int x = nearestBreakpointv2();
 				if (canConstruct(RobotType.SLANDERER, x)) {
 					construct(RobotType.SLANDERER, x);
@@ -266,17 +268,19 @@ public strictfp class RobotPlayer {
 	static void runPolitician() throws GameActionException {
 		if (turnCount == 1 && rc.getFlag(rc.getID()) == 0)
 			firstTurn();
-		else if(turnCount == 1)
+		else if (turnCount == 1)
 			convertedPolitician();
 
-		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40)// Don't worry about lattice after a couple
+		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40) {// Don't worry about lattice after a couple
 																			// turns
 			rc.setFlag(encodeFlag(0, 0, 0, 12));
-
+			politicianMission = 12;
+		}
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int[] ecFlag = new int[1];
+
 		try {
 			ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 		}
@@ -285,7 +289,7 @@ public strictfp class RobotPlayer {
 		{
 				if(rc.isReady())
 				{
-					rc.empower(1);
+					rc.empower(rc.getType().actionRadiusSquared);
 				}
 				return;
 		}
@@ -344,15 +348,17 @@ public strictfp class RobotPlayer {
 		}
 
 		if (rc.getFlag(rc.getID()) == 0) {
-			if (rc.getInfluence() == 20)
+			if (rc.getInfluence() % 10 == 0) {
+				politicianMission = 10;
 				rc.setFlag(encodeFlag(0, 0, 0, 10));
+			}
 		}
 
 		if (rc.isReady()) {
-			if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10) {
+			if (politicianMission == 10) {
 				latticeStructure();
 				return;
-			} else if (decodeFlag(rc.getFlag(rc.getID()))[3] == 11) {
+			} else if (politicianMission == 11) {
 				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(3, enemy);
 				if (attackableRadiusOne.length != 0)
 					rc.empower(3);
@@ -384,7 +390,7 @@ public strictfp class RobotPlayer {
 		if (attackable.length > 0) {
 			for (int i = 0; i < attackable.length; i++) {
 				if (attackable[i].getLocation().isWithinDistanceSquared(currentLoc, 2)) {
-					if(rc.isReady()) {
+					if (rc.isReady()) {
 						rc.empower(2);
 					}
 				}
@@ -500,11 +506,11 @@ public strictfp class RobotPlayer {
 
 	}
 
-	static void convertedPolitician() throws GameActionException
-	{
+	static void convertedPolitician() throws GameActionException {
 		enlightenmentCenterID = rc.getFlag(rc.getID());
 		rc.setFlag(0);
 	}
+
 	static void runMuckraker() throws GameActionException {
 		// Define some constants
 		int senseRadius = RobotType.MUCKRAKER.detectionRadiusSquared;
@@ -612,7 +618,7 @@ public strictfp class RobotPlayer {
 			if (ECFlagMsg >= 30 && ECFlagMsg <= 33) {// Means that EC has already found a flag
 				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 				if (flag[3] != ECFlagMsg) {
-					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+					cornerMission = 0;
 				}
 			} else {
 				if (!isAtCorner) {
@@ -763,6 +769,10 @@ public strictfp class RobotPlayer {
 			}
 		}
 
+		if (rc.canBid(1)) {
+			rc.bid(1);
+		}
+
 	}
 
 	/**
@@ -801,18 +811,28 @@ public strictfp class RobotPlayer {
 				construct(RobotType.MUCKRAKER, 1);
 			}
 		}
+
+		if (rc.canBid(1)) {
+			rc.bid(1);
+		}
 	}
 
 	static void runStageThree() throws GameActionException {
-		if (neutralECs.size() > 0) {
-			int neutralInfluence = neutralECInf.get(nECpoliticians) * 50 + 10;
+		if (neutralECs.size() > nECpoliticians) {
+			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
 			if (rc.getInfluence() >= neutralInfluence) {
 				if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
 					construct(RobotType.POLITICIAN, neutralInfluence);
+					nECpoliticians++;
 			}
 		}
 		if (canConstruct(RobotType.MUCKRAKER, 1)) {
 			construct(RobotType.MUCKRAKER, 1);
+		}
+
+		if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
+			rc.bid(random);
 		}
 		/**
 		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
@@ -824,7 +844,6 @@ public strictfp class RobotPlayer {
 		 */
 	}
 
-
 	static void runStageFour() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageFourMode) {
@@ -835,11 +854,19 @@ public strictfp class RobotPlayer {
 			} else {
 				if (canConstruct(RobotType.SLANDERER, 130)) {
 					construct(RobotType.SLANDERER, 130);
+					stageFourMode = true;
 				}
 			}
 		}
-	}
 
+		if (canConstruct(RobotType.MUCKRAKER, 1))
+			construct(RobotType.MUCKRAKER, 1);
+
+		if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
+			rc.bid(random);
+		}
+	}
 
 	static void runStageFive() throws GameActionException {
 		/**
@@ -856,8 +883,7 @@ public strictfp class RobotPlayer {
 				if (rc.getInfluence() >= neutralInfluence) {
 					if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
 						construct(RobotType.POLITICIAN, neutralInfluence);
-				}
-				else if(canConstruct(RobotType.MUCKRAKER, 1)) {
+				} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
 					construct(RobotType.MUCKRAKER, 1);
 				}
 			}
@@ -874,7 +900,7 @@ public strictfp class RobotPlayer {
 				int x = nearestBreakpoint();
 				if (canConstruct(RobotType.SLANDERER, x)) {
 					construct(RobotType.SLANDERER, x);
-					stageFiveMode = false;
+					stageFiveMode = true;
 					return;
 				}
 			}
@@ -882,8 +908,12 @@ public strictfp class RobotPlayer {
 				construct(RobotType.MUCKRAKER, 1);
 			}
 		}
-	}
 
+		if (rc.canBid(25)) {
+			int random = (int) ((Math.random() + .1) * 25);
+			rc.bid(random);
+		}
+	}
 
 	static void runStageSix() throws GameActionException {
 		if (rc.isReady()) {
@@ -905,8 +935,12 @@ public strictfp class RobotPlayer {
 				construct(RobotType.MUCKRAKER, 1);
 			}
 		}
-	}
 
+		if (rc.canBid(50)) {
+			int random = (int) ((Math.random() + .1) * 50);
+			rc.bid(random);
+		}
+	}
 
 	static void runStageSeven() throws GameActionException {
 		if (rc.isReady()) {
@@ -930,15 +964,20 @@ public strictfp class RobotPlayer {
 					stageSevenModes[1] = 0;
 				}
 			} else if (stageSevenModes[0] == 2) {
-				if (rc.canBid(10)) {
-					rc.bid(10);
+				if (canConstruct(RobotType.MUCKRAKER, 1)) {
+					construct(RobotType.MUCKRAKER, 1);
 					stageSevenModes[1] += 1;
 				}
-				if (stageSevenModes[1] >= 100) {
-					stageSevenModes[0] = 0;
-					stageSevenModes[1] = 0;
-				}
 			}
+			if (stageSevenModes[1] >= 50) {
+				stageSevenModes[0] = 0;
+				stageSevenModes[1] = 0;
+			}
+		}
+
+		if (rc.canBid(100)) {
+			int random = (int) ((Math.random() + .1) * 100);
+			rc.bid(random);
 		}
 	}
 
@@ -964,21 +1003,22 @@ public strictfp class RobotPlayer {
 					stageSevenModes[1] = 0;
 				}
 			} else if (stageSevenModes[0] == 2) {
-				if (rc.canBid(5)) {
-					int random = (int) ((Math.random()+0.1)*4 + 1);
-					rc.bid(random);
+				if (canConstruct(RobotType.MUCKRAKER, 1)) {
+					construct(RobotType.MUCKRAKER, 1);
 					stageSevenModes[1] += 1;
 				}
-				if (stageSevenModes[1] >= 100) {
-					stageSevenModes[0] = 0;
-					stageSevenModes[1] = 0;
-				}
+			}
+			if (stageSevenModes[1] >= 50) {
+				stageSevenModes[0] = 0;
+				stageSevenModes[1] = 0;
 			}
 		}
-		if(rc.canBid(10)) {
-			int random = (int) ((Math.random()+.1)*10);
+
+		if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
 			rc.bid(random);
 		}
+
 	}
 
 	static int nearestBreakpoint() throws GameActionException {
@@ -1292,9 +1332,10 @@ public strictfp class RobotPlayer {
 		if (rc.canMove(toGo)) {
 			rc.move(toGo);
 
-			if (rc.getLocation().equals(destination))
+			if (rc.getLocation().equals(destination)) {
 				rc.setFlag(encodeFlag(0, 0, 0, 11));
-			else
+				politicianMission = 11;
+			} else
 				rc.setFlag(encodeFlag(0, 0, 0, 10));
 			Clock.yield();
 		}
