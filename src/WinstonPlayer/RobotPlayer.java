@@ -370,16 +370,16 @@ public strictfp class RobotPlayer {
 		if (neutralECs.size() > 0) {
 			loc = neutralECs.get(0);
 			if (rc.isReady()) {
-				if (currentLoc.isWithinDistanceSquared(loc, 2)) {
-					rc.empower(2);
+				int dist=currentLoc.distanceSquaredTo(loc);
+				if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length == 1)) {
+					//Empower if we're close enough or if nothing's in the way
+					rc.empower(dist);
 					return;
 				} else if (rc.canMove(currentLoc.directionTo(loc))) {
 					rc.move(currentLoc.directionTo(loc));
 					return;
-				} else if (currentLoc.isWithinDistanceSquared(loc, rc.getType().actionRadiusSquared)) {// We may be
-																										// blocked from
-																										// EC
-					rc.empower(currentLoc.distanceSquaredTo(loc));
+				} else if (dist <= rc.getType().actionRadiusSquared) {// We may be blocked from attacking
+					rc.empower(dist);
 					return;
 				}
 			}
