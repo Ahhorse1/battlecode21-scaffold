@@ -166,7 +166,7 @@ public strictfp class RobotPlayer {
 			MapLocation loc;
 			for (int i = 0; i < unitIDs.size(); ++i) {
 				id = unitIDs.get(i);
-				if (rc.canGetFlag(id) && (rc.getFlag(id) >> shift[0])>0) {
+				if (rc.canGetFlag(id)) {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
 					System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
