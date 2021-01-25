@@ -181,7 +181,7 @@ public strictfp class RobotPlayer {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
 
-					System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
+					//System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
 					case 1:// enemy EC
 						if (!enemyECs.contains(loc))
@@ -947,7 +947,7 @@ public strictfp class RobotPlayer {
 				}
 			} else if (stageSevenModes[0] == 2) {
 				if (rc.canBid(5)) {
-					int random = (int) ((Math.random()+.1)*5);
+					int random = (int) ((Math.random()+0.1)*4 + 1);
 					rc.bid(random);
 					stageSevenModes[1] += 1;
 				}
