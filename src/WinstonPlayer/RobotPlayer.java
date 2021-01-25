@@ -28,6 +28,7 @@ public strictfp class RobotPlayer {
 	static ArrayList<MapLocation> enemyECs = new ArrayList<MapLocation>();
 	static ArrayList<MapLocation> friendlyECs = new ArrayList<MapLocation>();
 	static ArrayList<MapLocation> neutralECs = new ArrayList<MapLocation>();
+	static ArrayList<Integer> neutralECInf = new ArrayList<Integer>();
 
 	static ArrayList<Integer> unitIDs = new ArrayList<Integer>();
 
@@ -56,6 +57,9 @@ public strictfp class RobotPlayer {
 	static boolean runCorner = true;
 	static int closestCorner;
 
+	static int cornerNum = 0;
+	static int cornerMission;
+
 	/**
 	 * Stores the previous round's influence
 	 */
@@ -82,7 +86,6 @@ public strictfp class RobotPlayer {
 	static int enlightenmentCenterID;
 
 	static boolean readyToDie = false;
-	static int cornerNum = 0;
 
 	/**
 	 * Holds units for the first stage
@@ -102,8 +105,15 @@ public strictfp class RobotPlayer {
 	/**
 	 * Holds all integer breakpoints for the slanderers
 	 */
-	static int[] breakpoints = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255 };
+	static int[] breakpoints = { 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
+			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
+	
+	static int[] breakpointsv2 = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
+			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
 
+	static int nECpoliticians = 0;
+
+	static boolean isCapturedEC = false;
 	/**
 	 * run() is the method that is called when a robot is instantiated in the
 	 * Battlecode world. If this method returns, the robot dies!
@@ -127,11 +137,13 @@ public strictfp class RobotPlayer {
 				// You may rewrite this into your own control structure if you wish.
 				switch (rc.getType()) {
 				case ENLIGHTENMENT_CENTER:
-					if (turnCount == 1 && rc.getInfluence() != 150) {
-						runCapturedEnlightenmentCenter();
-					} else {
-						runEnlightenmentCenter();
+					if (turnCount == 1 && rc.getInfluence() != 150)
+						isCapturedEC = true;
+					if(isCapturedEC) {
+						runCapturedStage();
 					}
+					else
+						runEnlightenmentCenter();
 					break;
 				case POLITICIAN:
 					runPolitician();
@@ -164,42 +176,51 @@ public strictfp class RobotPlayer {
 			int id;
 			int[] flag;
 			MapLocation loc;
-			for (int i = 0; i < unitIDs.size(); i++) {
+			for (int i = 0; i < unitIDs.size(); ++i) {
 				id = unitIDs.get(i);
 				if (rc.canGetFlag(id)) {
-					flag=decodeFlag(rc.getFlag(id));
-					if(flag[0]>0){
-						loc = getMapLocation(flag[1], flag[2]);
-						System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
-						switch (flag[0]) {
-							case 1:// enemy EC
-								if (!enemyECs.contains(loc))
-									enemyECs.add(loc);
-								if (friendlyECs.contains(loc))
-									friendlyECs.remove(loc);
-								if (neutralECs.contains(loc))
-									neutralECs.remove(loc);
-								break;
-							case 2: // neutral HQ
-								if (!neutralECs.contains(loc))
-									neutralECs.add(loc);
-								break;
-							case 3: // Friendly EC
-								if (!friendlyECs.contains(loc)) {
-									friendlyECs.add(loc);
-									rc.setFlag(encodeFlag(3, loc));
-								}
-								if (enemyECs.contains(loc))
-									enemyECs.remove(loc);
-								if (neutralECs.contains(loc)) {
-									neutralECs.remove(loc);
-								}
-								break;
-							case 12: // Slanderer storm
-								int myFlag = encodeFlag(12, loc);
-								if (rc.canSetFlag(myFlag))
-									rc.setFlag(myFlag);
+					flag = decodeFlag(rc.getFlag(id));
+					loc = getMapLocation(flag[1], flag[2]);
+
+					System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
+					switch (flag[0]) {
+					case 1:// enemy EC
+						if (!enemyECs.contains(loc))
+							enemyECs.add(loc);
+						if (friendlyECs.contains(loc))
+							friendlyECs.remove(loc);
+						if (neutralECs.contains(loc)) {
+							int index = neutralECs.indexOf(loc);
+							neutralECs.remove(loc);
+							neutralECInf.remove(index);
 						}
+
+						break;
+					case 2: // neutral HQ
+						if (!neutralECs.contains(loc)) {
+							neutralECs.add(loc);
+							int influence = flag[3];
+							neutralECInf.add(influence);
+						}
+						break;
+					case 3: // Friendly EC
+						if (!friendlyECs.contains(loc)) {
+							friendlyECs.add(loc);
+							rc.setFlag(encodeFlag(3, loc));
+						}
+						if (enemyECs.contains(loc))
+							enemyECs.remove(loc);
+						if (neutralECs.contains(loc)) {
+							int index = neutralECs.indexOf(loc);
+							neutralECs.remove(loc);
+							neutralECInf.remove(index);
+						}
+						break;
+					case 12: // Slanderer storm
+						int myFlag = encodeFlag(12, loc);
+						if (rc.canSetFlag(myFlag))
+							rc.setFlag(myFlag);
+
 					}
 				} else {
 					unitIDs.remove(i);// This means the robot went bye-bye
@@ -211,7 +232,7 @@ public strictfp class RobotPlayer {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
 		}
 
-		if(runCorner)
+		if (runCorner)
 			updateCorner();
 		if (turnCount <= 20) {
 			runStageOne();
@@ -231,20 +252,25 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runCapturedEnlightenmentCenter() throws GameActionException {
-		if (turnCount == 1) {
-			int[] slanderers = { 2302 };
-			Units.add(slanderers);
+		if (turnCount <= 20) {
+			if(rc.isReady()) {
+				int x = nearestBreakpointv2();
+				if (canConstruct(RobotType.SLANDERER, x)) {
+					construct(RobotType.SLANDERER, x);
+					return;
+				}
+			}
 		}
-		Units.set(0, resizeArray(Units.get(0), Units.get(0).length + 1));
-		runStageTwo();
+		runCapturedStage();
 	}
 
 	static void runPolitician() throws GameActionException {
 		if (turnCount == 1)
 			firstTurn();
 
-		if(decodeFlag(rc.getFlag(rc.getID()))[3]==10&&turnCount>=40)//Don't worry about lattice after a couple turns
-			rc.setFlag(encodeFlag(0,0,0,12));
+		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40)// Don't worry about lattice after a couple
+																			// turns
+			rc.setFlag(encodeFlag(0, 0, 0, 12));
 
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
@@ -283,15 +309,19 @@ public strictfp class RobotPlayer {
 			if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {// Found an EC
 				if (robot.getTeam().equals(Team.NEUTRAL) && !neutralECs.contains(loc)) {
 					neutralECs.add(loc);
-					rc.setFlag(encodeFlag(2, loc));
+					int ecInf = robot.getInfluence();
+					int commInf = 39 + ecInf / 50;
+					if (ecInf % 50 != 0 || ecInf < 50)
+						commInf++;
+					rc.setFlag(encodeFlag(2, loc, commInf));
 				} else if (robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)) {
 					friendlyECs.add(loc);
 					rc.setFlag(encodeFlag(3, loc));
 					if (neutralECs.contains(loc))
 						neutralECs.remove(loc);
-				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {//Found an enemy EC
+				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {// Found an enemy EC
 					enemyECs.add(loc);
-					rc.setFlag(encodeFlag(1,loc));
+					rc.setFlag(encodeFlag(1, loc));
 					if (neutralECs.contains(loc))
 						neutralECs.remove(loc);
 					if (friendlyECs.contains(loc))
@@ -317,7 +347,7 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		//Attempt to storm neutral ECs
+		// Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
 			loc = neutralECs.get(0);
 			if (rc.isReady()) {
@@ -327,25 +357,29 @@ public strictfp class RobotPlayer {
 				} else if (rc.canMove(currentLoc.directionTo(loc))) {
 					rc.move(currentLoc.directionTo(loc));
 					return;
-				} else if(currentLoc.isWithinDistanceSquared(loc,rc.getType().actionRadiusSquared)) {//We may be blocked from EC
+				} else if (currentLoc.isWithinDistanceSquared(loc, rc.getType().actionRadiusSquared)) {// We may be
+																										// blocked from
+																										// EC
 					rc.empower(currentLoc.distanceSquaredTo(loc));
 					return;
 				}
 			}
 		}
 
-		//Attempt to attack a nearby unit
+		// Attempt to attack a nearby unit
 		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, rc.getTeam().opponent());
 		if (attackable.length > 0) {
 			for (int i = 0; i < attackable.length; i++) {
-				if(attackable[i].getLocation().isWithinDistanceSquared(currentLoc,2)){
+				if (attackable[i].getLocation().isWithinDistanceSquared(currentLoc, 2)) {
 					rc.empower(2);
 				}
 				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
 					if (rc.isReady()) {
 						if (rc.canMove(currentLoc.directionTo(attackable[i].location)))
 							rc.move(currentLoc.directionTo(attackable[i].location));
-						else if(currentLoc.isWithinDistanceSquared(loc,rc.getType().actionRadiusSquared))//We may be blocked from EC
+						else if (currentLoc.isWithinDistanceSquared(loc, rc.getType().actionRadiusSquared))// We may be
+																											// blocked
+																											// from EC
 							rc.empower(currentLoc.distanceSquaredTo(loc));
 					}
 				}
@@ -366,10 +400,9 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-
-		//If all else fails, do something
+		
+		// If all else fails, do something
 		doRandomMove();
-
 
 	}
 
@@ -417,7 +450,6 @@ public strictfp class RobotPlayer {
 					rc.move(Direction.EAST);
 					return;
 				}
-
 				break;
 			case 32:
 				if (rc.canMove(Direction.SOUTHEAST)) {
@@ -444,7 +476,9 @@ public strictfp class RobotPlayer {
 				}
 				break;
 			}
-		} else {
+		} else
+
+		{
 			if (rc.getLocation().isWithinDistanceSquared(ecLoc, 25))
 				tryMove(randomDirection());
 		}
@@ -463,15 +497,19 @@ public strictfp class RobotPlayer {
 			switch (ECFlag[3]) {
 			case 20:
 				rc.setFlag(encodeFlag(0, 0, 0, 20));
+				cornerMission = 20;
 				break;
 			case 21:
 				rc.setFlag(encodeFlag(0, 0, 0, 21));
+				cornerMission = 21;
 				break;
 			case 22:
 				rc.setFlag(encodeFlag(0, 0, 0, 22));
+				cornerMission = 22;
 				break;
 			case 23:
 				rc.setFlag(encodeFlag(0, 0, 0, 23));
+				cornerMission = 23;
 				break;
 			}
 		}
@@ -534,7 +572,11 @@ public strictfp class RobotPlayer {
 					flagSet = true;
 				} else if (robot.getTeam().equals(Team.NEUTRAL)) {
 					// We've found a neutral enlightenment center!!!! Set flag at all costs
-					rc.setFlag(encodeFlag(2, robot.getLocation()));
+					int ecInf = robot.getInfluence();
+					int commInf = 39 + ecInf / 50;
+					if (ecInf % 50 != 0 || ecInf < 50)
+						commInf++;
+					rc.setFlag(encodeFlag(2, robot.getLocation(), commInf));
 					flagSet = true;
 				}
 			}
@@ -553,7 +595,7 @@ public strictfp class RobotPlayer {
 					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 				}
 			} else {
-				if(!isAtCorner) {
+				if (!isAtCorner) {
 					findCorner();
 				}
 				return;
@@ -565,7 +607,7 @@ public strictfp class RobotPlayer {
 			return;
 
 		// Find a target to expose
-		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius,enemy);
+		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius, enemy);
 		for (RobotInfo robot : nearby)
 			if (robot.getType().canBeExposed() && rc.isReady()) {
 				rc.expose(robot.getLocation());
@@ -575,7 +617,7 @@ public strictfp class RobotPlayer {
 		// Move somewhere based on destination, then antigrouping, then randomly
 		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
 			rc.move(rc.getLocation().directionTo(targetDestination));
-		else if (rc.canMove(antiGroupingMovement()))//Run antigrouping stuff
+		else if (rc.canMove(antiGroupingMovement()))// Run antigrouping stuff
 			rc.move(antiGroupingMovement());
 		else {
 			doRandomMove();
@@ -593,7 +635,6 @@ public strictfp class RobotPlayer {
 	static Direction antiGroupingMovement() throws GameActionException {
 		int selfX = rc.getLocation().x;
 		int selfY = rc.getLocation().y;
-		int actionRadius = rc.getType().actionRadiusSquared;
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
 		Boolean furtherX = false;
@@ -604,60 +645,72 @@ public strictfp class RobotPlayer {
 			furtherX = (location.x >= selfX);
 			furtherY = (location.y >= selfY);
 			if (furtherX && furtherY)
-				quadrantOne++;
+				quadrantOne++; // North east; top left
 			else if (furtherX && !furtherY)
-				quadrantTwo++;
+				quadrantTwo++; // South east; bottom left
 			else if (!furtherX && !furtherY)
-				quadrantThree++;
+				quadrantThree++; // South west; bottom right
 			else
-				quadrantFour++;
+				quadrantFour++; // North west; top right
 		}
+		// Define passabilities of directions
+		double north = 0, northeast = 0, east = 0, southeast = 0, south = 0, southwest = 0, west = 0, northwest = 0;// Default
+																													// to
+																													// entirely
+																													// unpassable
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.WEST)))
+			west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.NORTHWEST)))
+			northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.NORTH)))
+			north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.NORTHEAST)))
+			northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.EAST)))
+			east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.SOUTH)))
+			south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.SOUTHWEST)))
+			southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));
+		if (rc.canSenseLocation(rc.adjacentLocation(Direction.SOUTHEAST)))
+			southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 
-		double west = rc.sensePassability(rc.adjacentLocation((Direction.WEST)));
-		double northwest = rc.sensePassability(rc.adjacentLocation((Direction.NORTHWEST)));
-		double north = rc.sensePassability(rc.adjacentLocation((Direction.NORTH)));
-		double northeast = rc.sensePassability(rc.adjacentLocation((Direction.NORTHEAST)));
-		double east = rc.sensePassability(rc.adjacentLocation((Direction.EAST)));
-		double south = rc.sensePassability(rc.adjacentLocation((Direction.SOUTH)));
-		double southwest = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHWEST)));
-		double southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
-		if (quadrantOne < quadrantTwo && quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
-			// Go to quadrant I
-			if (northeast > north && northeast > east)
+		if (rc.canSenseLocation(rc.getLocation().translate(2, 2)) && quadrantOne < quadrantTwo
+				&& quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
+			// Go to quadrant I assuming that it's on the map
+			if (northeast > north && northeast > east)// Go to most passable areas
 				return Direction.NORTHEAST;
 			else if (north > east)
 				return Direction.NORTH;
-			else
-				return Direction.EAST;
+			return Direction.EAST;
 		}
-		if (quadrantTwo < quadrantThree && quadrantTwo < quadrantFour) {
-			// Go to quadrant II
+		if (rc.canSenseLocation(rc.getLocation().translate(2, -2)) && quadrantTwo < quadrantThree
+				&& quadrantTwo < quadrantFour) {
+			// Go to quadrant II assuming it's not walled off
 			if (southeast > east && southeast > south)
 				return Direction.SOUTHEAST;
 			else if (south > east)
 				return Direction.SOUTH;
-			else
-				return Direction.EAST;
+			return Direction.EAST;
 		}
-		if (quadrantThree < quadrantFour) {
-			// Go to quadrant III
+		if (rc.canSenseLocation(rc.getLocation().translate(-2, -2)) && quadrantThree < quadrantFour) {
+			// Go to quadrant III assuming it's within the map
 			if (southwest > south && southwest > west)
 				return Direction.SOUTHWEST;
 			else if (south > west)
 				return Direction.SOUTH;
-			else
-				return Direction.WEST;
+			return Direction.WEST;
 		}
 
-		// Go to quadrant IV
+		// Go to quadrant IV if not going to any of the other quadrants
 		if (northwest > north && northwest > west)
 			return Direction.NORTHWEST;
 		else if (west > north)
 			return Direction.WEST;
-		else
-			return Direction.NORTH;
+		return Direction.NORTH;
 
 	}
+
 // Enlightenment Center Methods Below
 
 	static void runStageOne() throws GameActionException {
@@ -677,6 +730,9 @@ public strictfp class RobotPlayer {
 				runCorner();
 			} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
 				construct(RobotType.MUCKRAKER, 1);
+				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+
 			}
 		}
 
@@ -721,8 +777,15 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageThree() throws GameActionException {
-		if(neutralECs.size() > 0) {
-			
+		if (neutralECs.size() > 0) {
+			int neutralInfluence = neutralECInf.get(nECpoliticians) * 50 + 10;
+			if (rc.getInfluence() >= neutralInfluence) {
+				if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
+					construct(RobotType.POLITICIAN, neutralInfluence);
+			}
+		}
+		if (canConstruct(RobotType.MUCKRAKER, 1)) {
+			construct(RobotType.MUCKRAKER, 1);
 		}
 		/**
 		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
@@ -734,6 +797,7 @@ public strictfp class RobotPlayer {
 		 */
 	}
 
+	
 	static void runStageFour() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageFourMode) {
@@ -749,6 +813,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	
 	static void runStageFive() throws GameActionException {
 		/**
 		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
@@ -758,7 +823,20 @@ public strictfp class RobotPlayer {
 		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
 		 * }
 		 */
-		if (rc.isReady()) {
+		if (neutralECs.size() > 0) {
+			if (rc.isReady()) {
+				int neutralInfluence = neutralECInf.get(nECpoliticians) * 50 + 10;
+				if (rc.getInfluence() >= neutralInfluence) {
+					if (canConstruct(RobotType.POLITICIAN, neutralInfluence))
+						construct(RobotType.POLITICIAN, neutralInfluence);
+				}
+				else if(canConstruct(RobotType.MUCKRAKER, 1)) {
+					construct(RobotType.MUCKRAKER, 1);
+				}
+			}
+		}
+
+		else if (rc.isReady()) {
 			if (stageFiveMode) {
 				if (canConstruct(RobotType.POLITICIAN, 100)) {
 					construct(RobotType.POLITICIAN, 100);
@@ -779,6 +857,7 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	
 	static void runStageSix() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageSixMode) {
@@ -801,11 +880,12 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	
 	static void runStageSeven() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
-				if (canConstruct(RobotType.POLITICIAN, 100)) {
-					construct(RobotType.POLITICIAN, 100);
+				if (canConstruct(RobotType.POLITICIAN, 200)) {
+					construct(RobotType.POLITICIAN, 200);
 					stageSevenModes[1] += 1;
 				}
 				if (stageSevenModes[1] >= 10) {
@@ -825,15 +905,68 @@ public strictfp class RobotPlayer {
 			} else if (stageSevenModes[0] == 2) {
 				if (rc.canBid(10)) {
 					rc.bid(10);
+					stageSevenModes[1] += 1;
+				}
+				if (stageSevenModes[1] >= 100) {
+					stageSevenModes[0] = 0;
+					stageSevenModes[1] = 0;
 				}
 			}
 		}
 	}
-
+	
+	static void runCapturedStage() throws GameActionException {
+		if (rc.isReady()) {
+			if (stageSevenModes[0] == 0) {
+				if (canConstruct(RobotType.POLITICIAN, 20)) {
+					construct(RobotType.POLITICIAN, 20);
+					stageSevenModes[1] += 1;
+				}
+				if (stageSevenModes[1] >= 10) {
+					stageSevenModes[0] = 1;
+					stageSevenModes[1] = 0;
+				}
+			} else if (stageSevenModes[0] == 1) {
+				int x = nearestBreakpointv2();
+				if (canConstruct(RobotType.SLANDERER, x)) {
+					construct(RobotType.SLANDERER, x);
+					stageSevenModes[1] += 1;
+				}
+				if (stageSevenModes[1] >= 10) {
+					stageSevenModes[0] = 2;
+					stageSevenModes[1] = 0;
+				}
+			} else if (stageSevenModes[0] == 2) {
+				if (rc.canBid(5)) {
+					int random = (int) ((Math.random()+.1)*5);
+					rc.bid(random);
+					stageSevenModes[1] += 1;
+				}
+				if (stageSevenModes[1] >= 100) {
+					stageSevenModes[0] = 0;
+					stageSevenModes[1] = 0;
+				}
+			}
+		}
+		if(rc.canBid(10)) {
+			int random = (int) ((Math.random()+.1)*10);
+			rc.bid(random);
+		}
+	}
+	
 	static int nearestBreakpoint() throws GameActionException {
 		for (int i = 1; i < breakpoints.length; i++) {
 			if (breakpoints[i] > rc.getInfluence()) {
 				return breakpoints[i - 1];
+			}
+		}
+		return 0;
+	}
+
+	static int nearestBreakpointv2() throws GameActionException {
+		for (int i = 1; i < breakpointsv2.length; i++) {
+			if (breakpointsv2[i] > rc.getInfluence()) {
+				return breakpointsv2[i - 1];
 			}
 		}
 		return 0;
@@ -991,12 +1124,24 @@ public strictfp class RobotPlayer {
 	 */
 	static MapLocation construct(RobotType typeToBuild, int influence) throws GameActionException {
 		RobotType toBuild = typeToBuild;
+
+		// Find most passable direction
+		double highestPassability = -1;
+		double tempPassability;
+		Direction bestDir = Direction.CENTER;
 		for (Direction dir : directions) {
 			if (rc.canBuildRobot(toBuild, dir, influence)) {
-				rc.buildRobot(toBuild, dir, influence);
-				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());// Store unit ID
-				return rc.adjacentLocation(dir);
+				tempPassability = rc.sensePassability(rc.adjacentLocation(dir));
+				if (tempPassability > highestPassability) {
+					highestPassability = tempPassability;
+					bestDir = dir;
+				}
 			}
+		}
+		if (highestPassability > -1) {
+			rc.buildRobot(toBuild, bestDir, influence);
+			unitIDs.add(rc.senseRobotAtLocation(rc.adjacentLocation(bestDir)).getID());// Store unit ID
+			return rc.adjacentLocation(bestDir);
 		}
 		return null;
 	}
@@ -1163,177 +1308,176 @@ public strictfp class RobotPlayer {
 	 */
 	static void findCorner() throws GameActionException {
 		MapLocation currentLoc = rc.getLocation();
-		int cornerNum = decodeFlag(rc.getFlag(rc.getID()))[3];
-		switch (cornerNum) {
-			case 20:// Go to top left
-				if (rc.isReady()) {
-					if (rc.canMove(Direction.NORTHWEST)) {
-						rc.move(Direction.NORTHWEST);
-						return;
-					} else if (rc.canMove(Direction.NORTH)) {
-						rc.move(Direction.NORTH);
-						return;
-					} else if (rc.canMove(Direction.WEST)) {
-						rc.move(Direction.WEST);
-						return;
-					} else {// Check if we're at the corner
-						MapLocation tempLoc = currentLoc;
-						tempLoc = tempLoc.add(Direction.NORTH);
-						tempLoc = tempLoc.add(Direction.NORTH);
-						MapLocation tempLoc2 = currentLoc;
-						tempLoc2 = tempLoc2.add(Direction.WEST);
-						tempLoc2 = tempLoc2.add(Direction.WEST);
-						if (rc.canSenseLocation(tempLoc)) {
-							if (rc.canMove(Direction.NORTHEAST)) {
-								rc.move(Direction.NORTHEAST);
-								return;
-							} else if (rc.canMove(Direction.EAST)) {
-								rc.move(Direction.EAST);
-								return;
-							}
-						} else if (rc.canSenseLocation(tempLoc2)) {
-							if (rc.canMove(Direction.SOUTHWEST)) {
-								rc.move(Direction.SOUTHWEST);
-								return;
-							} else if (rc.canMove(Direction.SOUTH)) {
-								rc.move(Direction.SOUTH);
-								return;
-							}
-						} else {
-							isAtCorner = true;
-							System.out.println("At Northwest Corner");
+		switch (cornerMission) {
+		case 20:// Go to top left
+			if (rc.isReady()) {
+				if (rc.canMove(Direction.NORTHWEST)) {
+					rc.move(Direction.NORTHWEST);
+					return;
+				} else if (rc.canMove(Direction.NORTH)) {
+					rc.move(Direction.NORTH);
+					return;
+				} else if (rc.canMove(Direction.WEST)) {
+					rc.move(Direction.WEST);
+					return;
+				} else {// Check if we're at the corner
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.NORTH);
+					tempLoc = tempLoc.add(Direction.NORTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.NORTHEAST)) {
+							rc.move(Direction.NORTHEAST);
+							return;
+						} else if (rc.canMove(Direction.EAST)) {
+							rc.move(Direction.EAST);
+							return;
 						}
-					}
-				}
-				break;
-			case 21: // Go to top right
-				if (rc.isReady()) {
-					if (rc.canMove(Direction.NORTHEAST)) {
-						rc.move(Direction.NORTHEAST);
-						return;
-					} else if (rc.canMove(Direction.NORTH)) {
-						rc.move(Direction.NORTH);
-						return;
-					} else if (rc.canMove(Direction.EAST)) {
-						rc.move(Direction.EAST);
-						return;
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.SOUTHWEST)) {
+							rc.move(Direction.SOUTHWEST);
+							return;
+						} else if (rc.canMove(Direction.SOUTH)) {
+							rc.move(Direction.SOUTH);
+							return;
+						}
 					} else {
-						MapLocation tempLoc = currentLoc;
-						tempLoc = tempLoc.add(Direction.NORTH);
-						tempLoc = tempLoc.add(Direction.NORTH);
-						MapLocation tempLoc2 = currentLoc;
-						tempLoc2 = tempLoc2.add(Direction.EAST);
-						tempLoc2 = tempLoc2.add(Direction.EAST);
-						if (rc.canSenseLocation(tempLoc)) {
-							if (rc.canMove(Direction.NORTHWEST)) {
-								rc.move(Direction.NORTHWEST);
-								return;
-							} else if (rc.canMove(Direction.WEST)) {
-								rc.move(Direction.WEST);
-								return;
-							}
-						} else if (rc.canSenseLocation(tempLoc2)) {
-							if (rc.canMove(Direction.SOUTHEAST)) {
-								rc.move(Direction.SOUTHEAST);
-								return;
-							} else if (rc.canMove(Direction.SOUTH)) {
-								rc.move(Direction.SOUTH);
-								return;
-							}
-						} else {
-							isAtCorner = true;
-							System.out.println("At Northeast Corner");
-						}
+						isAtCorner = true;
+						System.out.println("At Northwest Corner");
 					}
 				}
-				break;
-			case 22: // Go to bottom right
-				if (rc.isReady()) {
-					if (rc.canMove(Direction.SOUTHEAST)) {
-						rc.move(Direction.SOUTHEAST);
-						return;
-					} else if (rc.canMove(Direction.SOUTH)) {
-						rc.move(Direction.SOUTH);
-						return;
-					} else if (rc.canMove(Direction.EAST)) {
-						rc.move(Direction.EAST);
-						return;
+			}
+			break;
+		case 21: // Go to top right
+			if (rc.isReady()) {
+				if (rc.canMove(Direction.NORTHEAST)) {
+					rc.move(Direction.NORTHEAST);
+					return;
+				} else if (rc.canMove(Direction.NORTH)) {
+					rc.move(Direction.NORTH);
+					return;
+				} else if (rc.canMove(Direction.EAST)) {
+					rc.move(Direction.EAST);
+					return;
+				} else {
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.NORTH);
+					tempLoc = tempLoc.add(Direction.NORTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.NORTHWEST)) {
+							rc.move(Direction.NORTHWEST);
+							return;
+						} else if (rc.canMove(Direction.WEST)) {
+							rc.move(Direction.WEST);
+							return;
+						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.SOUTHEAST)) {
+							rc.move(Direction.SOUTHEAST);
+							return;
+						} else if (rc.canMove(Direction.SOUTH)) {
+							rc.move(Direction.SOUTH);
+							return;
+						}
 					} else {
-						MapLocation tempLoc = currentLoc;
-						tempLoc = tempLoc.add(Direction.SOUTH);
-						tempLoc = tempLoc.add(Direction.SOUTH);
-						MapLocation tempLoc2 = currentLoc;
-						tempLoc2 = tempLoc2.add(Direction.EAST);
-						tempLoc2 = tempLoc2.add(Direction.EAST);
-						if (rc.canSenseLocation(tempLoc)) {
-							if (rc.canMove(Direction.SOUTHWEST)) {
-								rc.move(Direction.SOUTHWEST);
-								return;
-							} else if (rc.canMove(Direction.WEST)) {
-								rc.move(Direction.WEST);
-								return;
-							}
-						} else if (rc.canSenseLocation(tempLoc2)) {
-							if (rc.canMove(Direction.NORTHEAST)) {
-								rc.move(Direction.NORTHEAST);
-								return;
-							} else if (rc.canMove(Direction.NORTH)) {
-								rc.move(Direction.NORTH);
-								return;
-							}
-						} else {
-							isAtCorner = true;
-							System.out.println("At Southeast Corner");
-						}
+						isAtCorner = true;
+						System.out.println("At Northeast Corner");
 					}
 				}
-				break;
-			case 23: // Go to bottom right
-				if (rc.isReady()) {
-					if (rc.canMove(Direction.SOUTHWEST)) {
-						rc.move(Direction.SOUTHWEST);
-						return;
-					} else if (rc.canMove(Direction.SOUTH)) {
-						rc.move(Direction.SOUTH);
-						return;
-					} else if (rc.canMove(Direction.WEST)) {
-						rc.move(Direction.WEST);
-						return;
+			}
+			break;
+		case 22: // Go to bottom right
+			if (rc.isReady()) {
+				if (rc.canMove(Direction.SOUTHEAST)) {
+					rc.move(Direction.SOUTHEAST);
+					return;
+				} else if (rc.canMove(Direction.SOUTH)) {
+					rc.move(Direction.SOUTH);
+					return;
+				} else if (rc.canMove(Direction.EAST)) {
+					rc.move(Direction.EAST);
+					return;
+				} else {
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.SOUTHWEST)) {
+							rc.move(Direction.SOUTHWEST);
+							return;
+						} else if (rc.canMove(Direction.WEST)) {
+							rc.move(Direction.WEST);
+							return;
+						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.NORTHEAST)) {
+							rc.move(Direction.NORTHEAST);
+							return;
+						} else if (rc.canMove(Direction.NORTH)) {
+							rc.move(Direction.NORTH);
+							return;
+						}
 					} else {
-						MapLocation tempLoc = currentLoc;
-						tempLoc = tempLoc.add(Direction.SOUTH);
-						tempLoc = tempLoc.add(Direction.SOUTH);
-						MapLocation tempLoc2 = currentLoc;
-						tempLoc2 = tempLoc2.add(Direction.WEST);
-						tempLoc2 = tempLoc2.add(Direction.WEST);
-						if (rc.canSenseLocation(tempLoc)) {
-							if (rc.canMove(Direction.SOUTHEAST)) {
-								rc.move(Direction.SOUTHEAST);
-								return;
-							} else if (rc.canMove(Direction.EAST)) {
-								rc.move(Direction.EAST);
-								return;
-							}
-						} else if (rc.canSenseLocation(tempLoc2)) {
-							if (rc.canMove(Direction.NORTHWEST)) {
-								rc.move(Direction.NORTHWEST);
-								return;
-							} else if (rc.canMove(Direction.NORTH)) {
-								rc.move(Direction.NORTH);
-								return;
-							}
-						} else {
-							isAtCorner = true;
-							System.out.println("At Southwest Corner");
-						}
+						isAtCorner = true;
+						System.out.println("At Southeast Corner");
 					}
 				}
-				break;
+			}
+			break;
+		case 23: // Go to bottom right
+			if (rc.isReady()) {
+				if (rc.canMove(Direction.SOUTHWEST)) {
+					rc.move(Direction.SOUTHWEST);
+					return;
+				} else if (rc.canMove(Direction.SOUTH)) {
+					rc.move(Direction.SOUTH);
+					return;
+				} else if (rc.canMove(Direction.WEST)) {
+					rc.move(Direction.WEST);
+					return;
+				} else {
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.SOUTHEAST)) {
+							rc.move(Direction.SOUTHEAST);
+							return;
+						} else if (rc.canMove(Direction.EAST)) {
+							rc.move(Direction.EAST);
+							return;
+						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.NORTHWEST)) {
+							rc.move(Direction.NORTHWEST);
+							return;
+						} else if (rc.canMove(Direction.NORTH)) {
+							rc.move(Direction.NORTH);
+							return;
+						}
+					} else {
+						isAtCorner = true;
+						System.out.println("At Southwest Corner");
+					}
+				}
+			}
+			break;
 
 		}
 
 		if (isAtCorner) // We've found a corner. Let the world know!
-			rc.setFlag(encodeFlag(6, currentLoc, cornerNum));
+			rc.setFlag(encodeFlag(6, currentLoc, cornerMission));
 	}
 
 	/**
@@ -1346,11 +1490,7 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static boolean isCornerRunner() throws GameActionException {
-		int mission = decodeFlag(rc.getFlag(rc.getID()))[3];
-		if (mission >= 20 && mission <= 23)
-			return true;
-		return false;
-
+		return (cornerMission >= 20 && cornerMission <= 23);
 	}
 
 	/**
@@ -1402,13 +1542,10 @@ public strictfp class RobotPlayer {
 		}
 	}
 
-
-
 	/**
 	 *
 	 */
 	static void updateCorner() throws GameActionException {
-
 		for (int i = 0; i < cornerRunnerIDs.length; i++) {
 			if (rc.canGetFlag(cornerRunnerIDs[i])) {
 				int[] tempFlag = decodeFlag(rc.getFlag(cornerRunnerIDs[i]));
@@ -1562,18 +1699,17 @@ public strictfp class RobotPlayer {
 
 		if (xDif < 64 && xDif > -64)
 			loc = loc.translate(xDif, 0);
-		else if(xDif<=-64)
+		else if (xDif <= -64)
 			loc = loc.translate((128 + xDif) % 64, 0);
-		else//larger than 64
-			loc=loc.translate((-128 + xDif)%64,0);
+		else// larger than 64
+			loc = loc.translate((-128 + xDif) % 64, 0);
 
 		if (yDif < 64 && yDif > -64)
 			loc = loc.translate(0, yDif);
-		else if(yDif<=-64)
-			loc = loc.translate(0, (128 + yDif) % 64); //eg, -96 means up 32
+		else if (yDif <= -64)
+			loc = loc.translate(0, (128 + yDif) % 64); // eg, -96 means up 32
 		else
-			loc=loc.translate(0,(-128 + yDif)%64);
-
+			loc = loc.translate(0, (-128 + yDif) % 64);
 
 		return loc;
 	}
@@ -1634,16 +1770,16 @@ public strictfp class RobotPlayer {
 			return false;
 	}
 
-
-	/** Does a random move. Attempts all directions
+	/**
+	 * Does a random move. Attempts all directions
 	 *
 	 */
-	static void doRandomMove() throws GameActionException{
-		int start=(int) (Math.random() * directions.length);
+	static void doRandomMove() throws GameActionException {
+		int start = (int) (Math.random() * directions.length);
 		Direction dir;
-		for(int i=0;i<directions.length;i++){
-			dir=directions[(i+start)%directions.length];
-			if(rc.canMove(dir))
+		for (int i = 0; i < directions.length; i++) {
+			dir = directions[(i + start) % directions.length];
+			if (rc.canMove(dir))
 				rc.move(dir);
 		}
 
