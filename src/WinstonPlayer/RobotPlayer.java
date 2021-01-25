@@ -278,47 +278,39 @@ public strictfp class RobotPlayer {
 		}
 		Team enemy = rc.getTeam().opponent();
 		MapLocation currentLoc = rc.getLocation();
+		MapLocation loc=currentLoc;//Stores info temporarily
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int[] ecFlag = new int[1];
 
-		try {
-			ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
-		}
-		//Politicians that can't figure out where the original enlightenment center came from, commit suicide
-		catch(Exception e)
-		{
-				if(rc.isReady())
-				{
-					rc.empower(rc.getType().actionRadiusSquared);
-				}
-				return;
-		}
-
 		// Update info from EC
-		MapLocation loc = getMapLocation(ecFlag[1], ecFlag[2]);
-		switch (ecFlag[0]) {
-		case 1:// enemy EC
-			if (!enemyECs.contains(loc))
-				enemyECs.add(loc);
-			if (friendlyECs.contains(loc))
-				friendlyECs.remove(loc);
-			if (neutralECs.contains(loc))
-				neutralECs.remove(loc);
-			break;
-		case 2: // neutral HQ
-			if (!neutralECs.contains(loc))
-				neutralECs.add(loc);
-			break;
-		case 3: // Friendly EC
-			if (!friendlyECs.contains(loc))
-				friendlyECs.add(loc);
-			if (enemyECs.contains(loc))
-				enemyECs.remove(loc);
-			if (neutralECs.contains(loc))
-				neutralECs.remove(loc);
-			break;
+		if(rc.canGetFlag(enlightenmentCenterID)) {
+			ecFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+			loc = getMapLocation(ecFlag[1], ecFlag[2]);
+			switch (ecFlag[0]) {
+				case 1:// enemy EC
+					if (!enemyECs.contains(loc))
+						enemyECs.add(loc);
+					if (friendlyECs.contains(loc))
+						friendlyECs.remove(loc);
+					if (neutralECs.contains(loc))
+						neutralECs.remove(loc);
+					break;
+				case 2: // neutral HQ
+					if (!neutralECs.contains(loc))
+						neutralECs.add(loc);
+					break;
+				case 3: // Friendly EC
+					if (!friendlyECs.contains(loc))
+						friendlyECs.add(loc);
+					if (enemyECs.contains(loc))
+						enemyECs.remove(loc);
+					if (neutralECs.contains(loc))
+						neutralECs.remove(loc);
+					break;
+			}
+		}else{
+			enlightenmentCenterID=0;
 		}
-
 		// Scan nearby robots, update stuff
 		RobotInfo[] nearby = rc.senseNearbyRobots(sensorRadius);
 		for (RobotInfo robot : nearby) {
@@ -326,11 +318,7 @@ public strictfp class RobotPlayer {
 			if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {// Found an EC
 				if (robot.getTeam().equals(Team.NEUTRAL) && !neutralECs.contains(loc)) {
 					neutralECs.add(loc);
-					int ecInf = robot.getInfluence();
-					int commInf = 39 + ecInf / 50;
-					if (ecInf % 50 != 0 || ecInf < 50)
-						commInf++;
-					rc.setFlag(encodeFlag(2, loc, commInf));
+					rc.setFlag(encodeFlag(2, loc, encodeNeutralECInfluence(robot.getInfluence())));
 				} else if (robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)) {
 					friendlyECs.add(loc);
 					rc.setFlag(encodeFlag(3, loc));
@@ -364,24 +352,23 @@ public strictfp class RobotPlayer {
 					rc.empower(3);
 				return;
 			}
-		}
+		}else
+			return; //Everything following this is action based
 
 		// Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
 			loc = neutralECs.get(0);
-			if (rc.isReady()) {
-				int dist=currentLoc.distanceSquaredTo(loc);
-				if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length == 1)) {
-					//Empower if we're close enough or if nothing's in the way
-					rc.empower(dist);
-					return;
-				} else if (rc.canMove(currentLoc.directionTo(loc))) {
-					rc.move(currentLoc.directionTo(loc));
-					return;
-				} else if (dist <= rc.getType().actionRadiusSquared) {// We may be blocked from attacking
-					rc.empower(dist);
-					return;
-				}
+			int dist=currentLoc.distanceSquaredTo(loc);
+			if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length == 1)) {
+				//Empower if we're close enough or if nothing's in the way
+				rc.empower(dist);
+				return;
+			} else if (rc.canMove(currentLoc.directionTo(loc))) {
+				rc.move(currentLoc.directionTo(loc));
+				return;
+			} else if (dist <= rc.getType().actionRadiusSquared) {// We may be blocked from attacking
+				rc.empower(dist);
+				return;
 			}
 		}
 
@@ -390,19 +377,13 @@ public strictfp class RobotPlayer {
 		if (attackable.length > 0) {
 			for (int i = 0; i < attackable.length; i++) {
 				if (attackable[i].getLocation().isWithinDistanceSquared(currentLoc, 2)) {
-					if (rc.isReady()) {
-						rc.empower(2);
-					}
+					rc.empower(2);
 				}
 				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
-					if (rc.isReady()) {
-						if (rc.canMove(currentLoc.directionTo(attackable[i].location)))
-							rc.move(currentLoc.directionTo(attackable[i].location));
-						else if (currentLoc.isWithinDistanceSquared(loc, rc.getType().actionRadiusSquared))// We may be
-																											// blocked
-																											// from EC
-							rc.empower(currentLoc.distanceSquaredTo(loc));
-					}
+					if (rc.canMove(currentLoc.directionTo(attackable[i].location)))
+						rc.move(currentLoc.directionTo(attackable[i].location));
+					else if (currentLoc.isWithinDistanceSquared(loc, rc.getType().actionRadiusSquared))
+						rc.empower(currentLoc.distanceSquaredTo(loc));
 				}
 			}
 		} else if (ecFlag[0] == 1 || ecFlag[0] == 2) {
@@ -426,7 +407,12 @@ public strictfp class RobotPlayer {
 		doRandomMove();
 
 	}
-
+	static int encodeNeutralECInfluence(int x){
+		int commInf = 39 + x / 50;
+		if (x % 50 != 0 || x < 50)
+			commInf++;
+		return commInf;
+	}
 	static void runSlanderer() throws GameActionException {
 		int ECFlag;
 		if (turnCount == 1) {
@@ -598,11 +584,7 @@ public strictfp class RobotPlayer {
 					flagSet = true;
 				} else if (robot.getTeam().equals(Team.NEUTRAL)) {
 					// We've found a neutral enlightenment center!!!! Set flag at all costs
-					int ecInf = robot.getInfluence();
-					int commInf = 39 + ecInf / 50;
-					if (ecInf % 50 != 0 || ecInf < 50)
-						commInf++;
-					rc.setFlag(encodeFlag(2, robot.getLocation(), commInf));
+					rc.setFlag(encodeFlag(2, robot.getLocation(), encodeNeutralECInfluence(robot.getInfluence())));
 					flagSet = true;
 				}
 			}
