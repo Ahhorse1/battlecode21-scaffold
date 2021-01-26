@@ -548,7 +548,7 @@ public strictfp class RobotPlayer {
 															// help out a bro)
 		boolean haveDestination = false;// Set this to true if we got some place to go
 
-		if (turnCount == 150) {
+		if (turnCount == 200) {
 			swarmMuckraker = true;
 			rc.setFlag(encodeFlag(15, 0, 0, 0));
 			if (rc.canGetFlag(enlightenmentCenterID)) {
@@ -624,8 +624,11 @@ public strictfp class RobotPlayer {
 				}
 
 			}
-
-			doRandomMove();
+			Direction anti=antiGroupingMovement();
+			if (rc.canMove(anti))// Run antigrouping stuff
+				rc.move(anti);
+			else
+				doRandomMove();
 			return;
 		}
 
@@ -1529,6 +1532,13 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
+
 						//System.out.println("At Northwest Corner");
 					}
 				}
@@ -1570,6 +1580,13 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
+
 						//System.out.println("At Northeast Corner");
 					}
 				}
@@ -1611,6 +1628,13 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
+
 						//System.out.println("At Southeast Corner");
 					}
 				}
@@ -1652,6 +1676,13 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
+
 						//System.out.println("At Southwest Corner");
 					}
 				}
