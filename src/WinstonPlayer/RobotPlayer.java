@@ -181,11 +181,10 @@ public strictfp class RobotPlayer {
 			MapLocation loc;
 			for (int i = 0; i < unitIDs.size(); i++) {
 				id = unitIDs.get(i);
-				if (rc.canGetFlag(id)) {
+				if (rc.canGetFlag(id) && rc.getFlag(id) > 0) {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
 
-					// System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
 					case 1:// enemy EC
 						if (!enemyECs.contains(loc))
@@ -223,8 +222,10 @@ public strictfp class RobotPlayer {
 						int myFlag = encodeFlag(12, loc);
 						if (rc.canSetFlag(myFlag))
 							rc.setFlag(myFlag);
+						break;
 					case 15:
 						unitIDs.remove(i);
+						break;
 					}
 				} else {
 					unitIDs.remove(i);// This means the robot went bye-bye
@@ -235,7 +236,7 @@ public strictfp class RobotPlayer {
 		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
 		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
-			rc.setFlag(encodeFlag(2, enemyECs.get(0)));
+			rc.setFlag(encodeFlag(1, enemyECs.get(0)));
 		}
 
 		if (runCorner)
@@ -517,6 +518,7 @@ public strictfp class RobotPlayer {
 		// Define some constants
 		int senseRadius = RobotType.MUCKRAKER.detectionRadiusSquared;
 		int actionRadius = RobotType.MUCKRAKER.actionRadiusSquared;
+		Team enemy = rc.getTeam().opponent();
 
 		// First turn stuffs
 		if (turnCount == 1) {
@@ -562,10 +564,10 @@ public strictfp class RobotPlayer {
 				targetDestination = enemyECs.get(random);
 				hasDestination = true;
 			} else {
-				Team enemy = rc.getTeam().opponent();
 				for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
 					if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 						targetDestination = robot.getLocation();
+						enemyECs.add(loc);
 						hasDestination = true;
 					}
 				}
@@ -574,6 +576,7 @@ public strictfp class RobotPlayer {
 
 		if (swarmMuckraker) {
 			MapLocation currentLoc = rc.getLocation();
+			//Attempt to gain purpose in life
 			if (!hasDestination) {
 				if (rc.canGetFlag(enlightenmentCenterID)) {
 					int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
@@ -596,8 +599,8 @@ public strictfp class RobotPlayer {
 						}
 					}
 				}
-			} else if (rc.isReady()) {
-
+			}
+			if (rc.isReady()) {
 				Team enemy = rc.getTeam().opponent();
 				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
 					if (robot.getType().canBeExposed()) {
@@ -683,8 +686,11 @@ public strictfp class RobotPlayer {
 					flagSet = true;
 				} else if (robot.getTeam().equals(Team.NEUTRAL)) {
 					// We've found a neutral enlightenment center!!!! Set flag at all costs
+					flagSet=true;
 					rc.setFlag(encodeFlag(2, robot.getLocation(), encodeNeutralECInfluence(robot.getInfluence())));
-					flagSet = true;
+				} else if(!friendlyECs.contains(loc)){ //We've found a new friendly EC
+					flagsSet=true;
+					rc.setFlag(encodeFlag(3,robot.getMapLocation()));
 				}
 			}
 		}
