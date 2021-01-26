@@ -560,7 +560,7 @@ public strictfp class RobotPlayer {
 
 			}
 			if (enemyECs.size() > 0) {
-				int random = (int) ((Math.random() + .1) * enemyECs.size());
+				int random = (int) (Math.random() * enemyECs.size());
 				targetDestination = enemyECs.get(random);
 				hasDestination = true;
 			} else {
@@ -724,10 +724,11 @@ public strictfp class RobotPlayer {
 			}
 
 		// Move somewhere based on destination, then antigrouping, then randomly
+		Direction anti=antiGroupingMovement();
 		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
 			rc.move(rc.getLocation().directionTo(targetDestination));
-		else if (rc.canMove(antiGroupingMovement()))// Run antigrouping stuff
-			rc.move(antiGroupingMovement());
+		else if (rc.canMove(anti))// Run antigrouping stuff
+			rc.move(anti);
 		else {
 			doRandomMove();
 		}
