@@ -181,10 +181,11 @@ public strictfp class RobotPlayer {
 			MapLocation loc;
 			for (int i = 0; i < unitIDs.size(); i++) {
 				id = unitIDs.get(i);
-				if (rc.canGetFlag(id) && rc.getFlag(id) > 0) {
+				if (rc.canGetFlag(id)) {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
 
+					// System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
 					case 1:// enemy EC
 						if (!enemyECs.contains(loc))
@@ -222,10 +223,8 @@ public strictfp class RobotPlayer {
 						int myFlag = encodeFlag(12, loc);
 						if (rc.canSetFlag(myFlag))
 							rc.setFlag(myFlag);
-						break;
 					case 15:
 						unitIDs.remove(i);
-						break;
 					}
 				} else {
 					unitIDs.remove(i);// This means the robot went bye-bye
@@ -567,7 +566,6 @@ public strictfp class RobotPlayer {
 				for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
 					if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 						targetDestination = robot.getLocation();
-						enemyECs.add(loc);
 						hasDestination = true;
 					}
 				}
@@ -576,7 +574,6 @@ public strictfp class RobotPlayer {
 
 		if (swarmMuckraker) {
 			MapLocation currentLoc = rc.getLocation();
-			//Attempt to gain purpose in life
 			if (!hasDestination) {
 				if (rc.canGetFlag(enlightenmentCenterID)) {
 					int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
@@ -596,11 +593,13 @@ public strictfp class RobotPlayer {
 						if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 							targetDestination = robot.getLocation();
 							hasDestination = true;
+							enemyECs.add(loc);
 						}
 					}
 				}
 			}
 			if (rc.isReady()) {
+
 				Team enemy = rc.getTeam().opponent();
 				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
 					if (robot.getType().canBeExposed()) {
@@ -612,7 +611,7 @@ public strictfp class RobotPlayer {
 				}
 
 				if (hasDestination) {
-					System.out.println("Am Swarming" + targetDestination.x + ", " + targetDestination.y);
+					//System.out.println("Am Swarming" + targetDestination.x + ", " + targetDestination.y);
 					if (rc.canMove(currentLoc.directionTo(targetDestination))) {
 						rc.move(currentLoc.directionTo(targetDestination));
 					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateLeft())) {
@@ -686,15 +685,15 @@ public strictfp class RobotPlayer {
 					flagSet = true;
 				} else if (robot.getTeam().equals(Team.NEUTRAL)) {
 					// We've found a neutral enlightenment center!!!! Set flag at all costs
-					flagSet=true;
 					rc.setFlag(encodeFlag(2, robot.getLocation(), encodeNeutralECInfluence(robot.getInfluence())));
-				} else if(!friendlyECs.contains(loc)){ //We've found a new friendly EC
-					flagsSet=true;
-					rc.setFlag(encodeFlag(3,robot.getMapLocation()));
+					flagSet = true;
+				} else if (!friendlyECs.contains(robot.getLocation)){
+					flagSet = true;
+					rc.setFlag(encodeFlag(3,robot.getLocation()));
 				}
 			}
 		}
-		if (enemySlandererCnt >= 12 && flagSet == false) { // notificationCutoff is set at 12, can increase whenever
+		if (enemySlandererCnt >= 4 && flagSet == false) { // notificationCutoff is set at 4, can increase whenever
 			// If the number of enemies warrants calling for reinforcements and there's not
 			// more important info to send
 			rc.setFlag(encodeFlag(12, rc.getLocation()));
@@ -797,7 +796,7 @@ public strictfp class RobotPlayer {
 		if (rc.canSenseLocation(rc.getLocation().translate(2, 2)) && quadrantOne < quadrantTwo
 				&& quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
 			// Go to quadrant I assuming that it's on the map
-			if (northeast > north && northeast > east)// Go to most passable areas
+			if (northeast >= north && northeast >= east)// Go to most passable areas
 				return Direction.NORTHEAST;
 			else if (north > east)
 				return Direction.NORTH;
@@ -806,7 +805,7 @@ public strictfp class RobotPlayer {
 		if (rc.canSenseLocation(rc.getLocation().translate(2, -2)) && quadrantTwo <= quadrantThree
 				&& quadrantTwo <= quadrantFour) {
 			// Go to quadrant II assuming it's not walled off
-			if (southeast > east && southeast > south)
+			if (southeast >= east && southeast >= south)
 				return Direction.SOUTHEAST;
 			else if (south > east)
 				return Direction.SOUTH;
@@ -814,25 +813,30 @@ public strictfp class RobotPlayer {
 		}
 		if (rc.canSenseLocation(rc.getLocation().translate(-2, -2)) && quadrantThree <= quadrantFour) {
 			// Go to quadrant III assuming it's within the map
-			if (southwest > south && southwest > west)
+			if (southwest >= south && southwest >= west)
 				return Direction.SOUTHWEST;
 			else if (south > west)
 				return Direction.SOUTH;
 			return Direction.WEST;
 		}
 
-		// Go to quadrant IV if not going to any of the other quadrants
-		if (northwest > north && northwest > west)
-			return Direction.NORTHWEST;
-		else if (west > north)
-			return Direction.WEST;
-		return Direction.NORTH;
-
+		if(rc.canSenseLocation(rc.getLocation().translate(2,-2))) {
+			// Go to quadrant IV if not going to any of the other quadrants
+			if (northwest >= north && northwest >= west)
+				return Direction.NORTHWEST;
+			else if (west > north)
+				return Direction.WEST;
+			return Direction.NORTH;
+		}
+		return randomDirection();
 	}
 
 // Enlightenment Center Methods Below
 
 	static void runStageOne() throws GameActionException {
+		if (rc.canBid(1)) {
+			rc.bid(1);
+		}
 		if (rc.isReady()) {
 			for (int i = 0; i < 2; i++) {
 				if (stageOne[0][i] == 0) {
@@ -855,9 +859,6 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(1)) {
-			rc.bid(1);
-		}
 
 	}
 
@@ -867,6 +868,10 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void runStageTwo() throws GameActionException {
+
+		if (rc.canBid(1)) {
+			rc.bid(1);
+		}
 		if (rc.isReady()) {
 			for (int i = 0; i < 3; i++) {
 				if (stageTwo[0][i] == 0) {
@@ -898,12 +903,16 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(1)) {
-			rc.bid(1);
-		}
 	}
 
 	static void runStageThree() throws GameActionException {
+		if (rc.canBid(10) && rc.getInfluence() > 250) {
+			int random = (int) ((Math.random() + .1) * 10);
+			rc.bid(random);
+		} else if (rc.canBid(1)) {
+			rc.bid(1);
+		}
+
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
 			if (rc.getInfluence() >= neutralInfluence) {
@@ -916,12 +925,7 @@ public strictfp class RobotPlayer {
 			construct(RobotType.MUCKRAKER, 1);
 		}
 
-		if (rc.canBid(10) && rc.getInfluence() > 250) {
-			int random = (int) ((Math.random() + .1) * 10);
-			rc.bid(random);
-		} else if (rc.canBid(1)) {
-			rc.bid(1);
-		}
+
 		/**
 		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
 		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
@@ -933,6 +937,13 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageFour() throws GameActionException {
+		if (rc.canBid(10) && rc.getInfluence() > 100) {
+			int random = (int) ((Math.random() + .1) * 10);
+			rc.bid(random);
+		} else if (rc.canBid(1)) {
+			rc.bid(1);
+		}
+
 		if (rc.isReady()) {
 			if (stageFourMode) {
 				if (canConstruct(RobotType.SLANDERER, 107)) {
@@ -950,12 +961,6 @@ public strictfp class RobotPlayer {
 		if (canConstruct(RobotType.MUCKRAKER, 1))
 			construct(RobotType.MUCKRAKER, 1);
 
-		if (rc.canBid(10) && rc.getInfluence() > 100) {
-			int random = (int) ((Math.random() + .1) * 10);
-			rc.bid(random);
-		} else if (rc.canBid(1)) {
-			rc.bid(1);
-		}
 
 		nECpoliticians = 0;
 	}
@@ -969,6 +974,13 @@ public strictfp class RobotPlayer {
 		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
 		 * }
 		 */
+		if (rc.canBid(25) && rc.getInfluence() > 125) {
+			int random = (int) ((Math.random() + .1) * 25);
+			rc.bid(random);
+		} else if (rc.canBid(5)) {
+			int random = (int) ((Math.random() + .1) * 5);
+			rc.bid(random);
+		}
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
 			if (rc.getInfluence() >= neutralInfluence) {
@@ -998,16 +1010,18 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(25) && rc.getInfluence() > 125) {
-			int random = (int) ((Math.random() + .1) * 25);
-			rc.bid(random);
-		} else if (rc.canBid(5)) {
-			int random = (int) ((Math.random() + .1) * 5);
-			rc.bid(random);
-		}
+
 	}
 
 	static void runStageSix() throws GameActionException {
+		if (rc.canBid(50) && rc.getInfluence() > 250) {
+			int random = (int) ((Math.random() + .1) * 50);
+			rc.bid(random);
+		} else if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
+			rc.bid(random);
+		}
+
 		if (rc.isReady()) {
 			if (stageSixMode) {
 				if (canConstruct(RobotType.POLITICIAN, 150)) {
@@ -1028,16 +1042,18 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(50) && rc.getInfluence() > 250) {
-			int random = (int) ((Math.random() + .1) * 50);
+
+	}
+
+	static void runStageSeven() throws GameActionException {
+		if (rc.canBid(100) && rc.getInfluence() > 500) {
+			int random = (int) ((Math.random() + .1) * 100);
 			rc.bid(random);
 		} else if (rc.canBid(10)) {
 			int random = (int) ((Math.random() + .1) * 10);
 			rc.bid(random);
 		}
-	}
 
-	static void runStageSeven() throws GameActionException {
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
 				if (canConstruct(RobotType.POLITICIAN, 200)) {
@@ -1070,16 +1086,14 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(100) && rc.getInfluence() > 500) {
-			int random = (int) ((Math.random() + .1) * 100);
-			rc.bid(random);
-		} else if (rc.canBid(10)) {
-			int random = (int) ((Math.random() + .1) * 10);
-			rc.bid(random);
-		}
+
 	}
 
 	static void runCapturedStage() throws GameActionException {
+		if (rc.canBid(10)) {
+			int random = (int) ((Math.random() + .1) * 10);
+			rc.bid(random);
+		}
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
 				if (canConstruct(RobotType.POLITICIAN, 20)) {
@@ -1112,10 +1126,7 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-		if (rc.canBid(10)) {
-			int random = (int) ((Math.random() + .1) * 10);
-			rc.bid(random);
-		}
+
 
 	}
 
@@ -1181,7 +1192,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		System.out.println("full");
+		//System.out.println("full");
 		return 0;
 	}
 
@@ -1339,6 +1350,12 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void latticeStructure() throws GameActionException {
+		Team enemy = rc.getTeam().opponent();
+		RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(3, enemy);
+			if (attackableRadiusOne.length != 0) {
+				rc.empower(3);
+				return;
+			}
 		if (hasDestination == false)
 			findDestination();
 		traverse(destination);
@@ -1511,7 +1528,7 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
-						System.out.println("At Northwest Corner");
+						//System.out.println("At Northwest Corner");
 					}
 				}
 			}
@@ -1552,7 +1569,7 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
-						System.out.println("At Northeast Corner");
+						//System.out.println("At Northeast Corner");
 					}
 				}
 			}
@@ -1593,7 +1610,7 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
-						System.out.println("At Southeast Corner");
+						//System.out.println("At Southeast Corner");
 					}
 				}
 			}
@@ -1634,7 +1651,7 @@ public strictfp class RobotPlayer {
 						}
 					} else {
 						isAtCorner = true;
-						System.out.println("At Southwest Corner");
+						//System.out.println("At Southwest Corner");
 					}
 				}
 			}
@@ -1684,7 +1701,7 @@ public strictfp class RobotPlayer {
 				for (Direction dir : directions) {
 					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
 						rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
-						System.out.println("Built CornerRunner");
+						//System.out.println("Built CornerRunner");
 						makeCornerRunner[i] = false;
 						rc.setFlag(encodeFlag(0, 0, 0, i + 20));
 						cornerRunnerIDs[i] = rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID();
@@ -1718,7 +1735,7 @@ public strictfp class RobotPlayer {
 				if (tempFlag[0] == 6)// corner has been found
 				{
 					atCorner[i] = true;
-					System.out.println("FOUND CORNER: " + i);
+					//System.out.println("FOUND CORNER: " + i);
 					mapCorners[i] = getMapLocation(tempFlag[1], tempFlag[2]);
 				}
 			} else {
@@ -1732,8 +1749,8 @@ public strictfp class RobotPlayer {
 				tempCounter++;
 		}
 		if (tempCounter >= 2) {
-			System.out.println("FOUND >TWO CORNERs:" + Arrays.toString(atCorner));
-			System.out.println("MAPCORNERS: " + Arrays.toString(mapCorners));
+			//System.out.println("FOUND >TWO CORNERs:" + Arrays.toString(atCorner));
+			//System.out.println("MAPCORNERS: " + Arrays.toString(mapCorners));
 			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 			runCorner = false;
 			closestCorner = closestCorner(mapCorners);
