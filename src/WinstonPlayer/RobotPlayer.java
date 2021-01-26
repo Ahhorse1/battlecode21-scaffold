@@ -104,12 +104,18 @@ public strictfp class RobotPlayer {
 	static int[] stageSevenModes = { 0, 0 };
 	/**
 	 * Holds all integer breakpoints for the slanderers
+	 * V1 is slanderers
+	 *  V2 is captured enlightenment slanderers
 	 */
 	static int[] breakpoints = { 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463, 497, 532, 605,
-			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
+			643, 683, 724, 766, 810, 855, 902, 949, 999, 1049,Integer.MAX_VALUE };
 
 	static int[] breakpointsv2 = { 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255, 282, 310, 339, 368, 399, 431, 463,
-			497, 532, 605, 643, 683, 724, 766, 810, 855, 902, 949, 999, 1049 };
+			497, 532, 605, 643, 683, 724, 766, 810, 855, 902, 949, 999, 1049, Integer.MAX_VALUE };
+
+	//For politicians
+	static int[] breakpointsv3 = { 20, 40, 50, 75, 100, 150, 200, Integer.MAX_VALUE };
+
 
 	static int nECpoliticians = 0;
 
@@ -145,7 +151,7 @@ public strictfp class RobotPlayer {
 					if (turnCount == 1 && rc.getInfluence() != 150)
 						isCapturedEC = true;
 					if (isCapturedEC) {
-						runCapturedStage();
+						runCapturedEnlightenmentCenter();
 					} else
 						runEnlightenmentCenter();
 					break;
@@ -170,9 +176,13 @@ public strictfp class RobotPlayer {
 		}
 	}
 
-	static void runEnlightenmentCenter() throws GameActionException {
-
-		// Scan through flags and see what's up
+	/**
+	 * To be run by an EC to scan through UNIT flags, updating information
+	 * @throws GameActionException
+	 */
+	static void seeWhatsUp() throws GameActionException{
+		boolean needsSupport=false;
+		int supportFlag=0;
 		if (unitIDs.size() > 0) {
 			int flagSetPriority = 0;// Set this to the priority of the flag you set
 			// Neutral is priority 4, enemy is priority 3, slanderer storm is priority 2,
@@ -218,9 +228,8 @@ public strictfp class RobotPlayer {
 								}
 								break;
 							case 12: // Slanderer storm
-								int myFlag = encodeFlag(12, loc);
-								if (rc.canSetFlag(myFlag))
-									rc.setFlag(myFlag);
+								needsSupport=true;
+								supportFlag = encodeFlag(12, loc);
 								break;
 							case 15:
 								unitIDs.remove(i);
@@ -232,6 +241,27 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
+		// Actually set the flag
+		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
+			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
+		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
+			rc.setFlag(encodeFlag(1, enemyECs.get(0)));
+		} else if (needsSupport && turnCount%3 == 0){
+			rc.setFlag(supportFlag);
+		}
+	}
+
+	static void runEnlightenmentCenter() throws GameActionException {
+		if(turnCount%10==0){
+			MapLocation actual;
+			for(MapLocation loc : neutralECs){
+				actual=getMapLocation(loc.x,loc.y);
+				System.out.println("NEUTRAL EC AT: (" + actual.x + "," + actual.y + ").");
+			}
+
+		}
+
+		seeWhatsUp();
 		// Actually set the flag
 		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
@@ -263,6 +293,12 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runCapturedEnlightenmentCenter() throws GameActionException {
+		seeWhatsUp();
+		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
+			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
+		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
+			rc.setFlag(encodeFlag(1, enemyECs.get(0)));
+		}
 		if (turnCount <= 20) {
 			if (rc.isReady()) {
 				int x = nearestBreakpointv2();
@@ -281,8 +317,7 @@ public strictfp class RobotPlayer {
 		else if (turnCount == 1)
 			convertedPolitician();
 
-		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40) {// Don't worry about lattice after a couple
-																				// turns
+		if (decodeFlag(rc.getFlag(rc.getID()))[3] == 10 && turnCount >= 40) {// Don't worry about lattice after a couple// turns
 			rc.setFlag(encodeFlag(0, 0, 0, 12));
 			politicianMission = 12;
 		}
@@ -357,11 +392,14 @@ public strictfp class RobotPlayer {
 			}
 		}
 
+
 		if (rc.isReady()) {
 			if (politicianMission == 10) {
 				latticeStructure();
 				return;
 			} else if (politicianMission == 11) {
+				if(turnCount>=40)
+					politicianMission=12;
 				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(3, enemy);
 				if (attackableRadiusOne.length != 0)
 					rc.empower(3);
@@ -370,8 +408,17 @@ public strictfp class RobotPlayer {
 		} else
 			return; // Everything following this is action based
 
+
+
+
 		// Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
+			MapLocation actual;
+
+			for(MapLocation ecl : neutralECs){
+				actual=getMapLocation(ecl.x,ecl.y);
+				System.out.println("NEUTRAL EC AT: (" + actual.x + "," + actual.y + ").");
+			}
 			loc = neutralECs.get(0);
 			int dist = currentLoc.distanceSquaredTo(loc);
 			if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length == 1)) {
@@ -873,7 +920,11 @@ public strictfp class RobotPlayer {
 		if (rc.canBid(1)) {
 			rc.bid(1);
 		}
+
 		if (rc.isReady()) {
+			if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
+				runCorner();
+			}
 			for (int i = 0; i < 3; i++) {
 				if (stageTwo[0][i] == 0) {
 					int toBuildCode = stageTwo[1][i];
@@ -899,16 +950,15 @@ public strictfp class RobotPlayer {
 					return;
 				}
 			}
-			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+			if (canConstruct(RobotType.MUCKRAKER, 1))
 				construct(RobotType.MUCKRAKER, 1);
-			}
 		}
 
 	}
 
 	static void runStageThree() throws GameActionException {
-		if (rc.canBid(10) && rc.getInfluence() > 250) {
-			int random = (int)((Math.random() + .1) * 10);
+		if (rc.getInfluence() > 250) {
+			int random = 5 + (int)(Math.random() * 5);
 			rc.bid(random);
 		} else if (rc.canBid(1)) {
 			rc.bid(1);
@@ -938,8 +988,8 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageFour() throws GameActionException {
-		if (rc.canBid(10) && rc.getInfluence() > 100) {
-			int random = (int) ((Math.random() + .1) * 10);
+		if (rc.getInfluence() > 100) {
+			int random = 5 + (int) (Math.random() * 5);
 			rc.bid(random);
 		} else if (rc.canBid(1)) {
 			rc.bid(1);
@@ -975,12 +1025,14 @@ public strictfp class RobotPlayer {
 		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
 		 * }
 		 */
-		if (rc.canBid(25) && rc.getInfluence() > 125) {
-			int random = (int) ((Math.random() + .1) * 25);
+		if (rc.getInfluence() > 125) {
+			int random = 15 + (int) (Math.random() * 10);
 			rc.bid(random);
-		} else if (rc.canBid(5)) {
-			int random = (int) ((Math.random() + .1) * 5);
+		} else if (rc.canBid(15)) {
+			int random = (int) (Math.random() * 5);
 			rc.bid(random);
+		} else if(rc.canBid(1)){
+			rc.bid(1);
 		}
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
@@ -1015,12 +1067,14 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageSix() throws GameActionException {
-		if (rc.canBid(50) && rc.getInfluence() > 250) {
-			int random = (int) ((Math.random() + .1) * 50);
+		if (rc.getInfluence() > 250) {
+			int random = 25 + (int)(Math.random() * 25);
 			rc.bid(random);
-		} else if (rc.canBid(10)) {
-			int random = (int) ((Math.random() + .1) * 10);
+		} else if (rc.canBid(50)) {
+			int random = 5 + (int)(Math.random() * 5);
 			rc.bid(random);
+		}else if(rc.canBid(1)){
+			rc.bid(1);
 		}
 
 		if (rc.isReady()) {
@@ -1047,18 +1101,22 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageSeven() throws GameActionException {
-		if (rc.canBid(100) && rc.getInfluence() > 500) {
-			int random = (int) ((Math.random() + .1) * 100);
+		if (rc.getInfluence() > 400) {
+			int random = 50 + (int)((Math.random()) * 50); //Between 50 and 100
 			rc.bid(random);
-		} else if (rc.canBid(10)) {
-			int random = (int) ((Math.random() + .1) * 10);
+		} else if (rc.canBid(50)) {
+			int random = 5 + (int) ((Math.random() + .1) * 5); //Between 5 and 10
 			rc.bid(random);
+		}else if(rc.canBid(1)){
+			rc.bid(1);
 		}
+
 
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
-				if (canConstruct(RobotType.POLITICIAN, 200)) {
-					construct(RobotType.POLITICIAN, 200);
+				int x=nearestBreakpointv3();
+				if (canConstruct(RobotType.POLITICIAN, x)) {
+					construct(RobotType.POLITICIAN, x);
 					stageSevenModes[1] += 1;
 				}
 				if (stageSevenModes[1] >= 10) {
@@ -1080,10 +1138,10 @@ public strictfp class RobotPlayer {
 					construct(RobotType.MUCKRAKER, 1);
 					stageSevenModes[1] += 1;
 				}
-			}
-			if (stageSevenModes[1] >= 50) {
-				stageSevenModes[0] = 0;
-				stageSevenModes[1] = 0;
+				if (stageSevenModes[1] >= 25) {
+					stageSevenModes[0] = 0;
+					stageSevenModes[1] = 0;
+				}
 			}
 		}
 
@@ -1091,14 +1149,20 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runCapturedStage() throws GameActionException {
-		if (rc.canBid(10)) {
-			int random = (int) ((Math.random() + .1) * 10);
+		if (rc.getInfluence() > 400) {
+			int random = 50 + (int) ((Math.random()) * 50); //Between 50 and 100
 			rc.bid(random);
+		} else if (rc.canBid(10)) {
+			int random = 5 + (int) ((Math.random() + .1) * 5); //Between 5 and 10
+			rc.bid(random);
+		}else if(rc.canBid(1)){
+			rc.bid(1);
 		}
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
-				if (canConstruct(RobotType.POLITICIAN, 20)) {
-					construct(RobotType.POLITICIAN, 20);
+				int x = nearestBreakpointv3();
+				if (canConstruct(RobotType.POLITICIAN, x)) {
+					construct(RobotType.POLITICIAN, x);
 					stageSevenModes[1] += 1;
 				}
 				if (stageSevenModes[1] >= 10) {
@@ -1115,15 +1179,15 @@ public strictfp class RobotPlayer {
 					stageSevenModes[0] = 2;
 					stageSevenModes[1] = 0;
 				}
-			} else if (stageSevenModes[0] == 2) {
+			} else {
 				if (canConstruct(RobotType.MUCKRAKER, 1)) {
 					construct(RobotType.MUCKRAKER, 1);
 					stageSevenModes[1] += 1;
 				}
-			}
-			if (stageSevenModes[1] >= 50) {
-				stageSevenModes[0] = 0;
-				stageSevenModes[1] = 0;
+				if (stageSevenModes[1] >= 25) {
+					stageSevenModes[0] = 0;
+					stageSevenModes[1] = 0;
+				}
 			}
 		}
 
@@ -1144,6 +1208,15 @@ public strictfp class RobotPlayer {
 		for (int i = 1; i < breakpointsv2.length; i++) {
 			if (breakpointsv2[i] > rc.getInfluence()) {
 				return breakpointsv2[i - 1];
+			}
+		}
+		return 0;
+	}
+
+	static int nearestBreakpointv3() throws GameActionException {
+		for (int i = 1; i < breakpointsv3.length; i++) {
+			if (breakpointsv3[i] > rc.getInfluence()) {
+				return breakpointsv3[i - 1];
 			}
 		}
 		return 0;
@@ -1911,7 +1984,6 @@ public strictfp class RobotPlayer {
 		MapLocation loc = rc.getLocation();
 		int xDif = x - (loc.x % 128);
 		int yDif = y - (loc.y % 128);
-
 		if (xDif < 64 && xDif > -64)
 			loc = loc.translate(xDif, 0);
 		else if (xDif <= -64)
@@ -1925,7 +1997,7 @@ public strictfp class RobotPlayer {
 			loc = loc.translate(0, (128 + yDif) % 64); // eg, -96 means up 32
 		else
 			loc = loc.translate(0, (-128 + yDif) % 64);
-
+		//System.out.println("WE ARE AT: " + rc.getLocation().x + "," + rc.getLocation().y + " it's at: " + x + "," + y + " xDif is " + xDif + " yDif is " + yDif + " and the location is " + loc.x + ", " + loc.y);
 		return loc;
 	}
 
