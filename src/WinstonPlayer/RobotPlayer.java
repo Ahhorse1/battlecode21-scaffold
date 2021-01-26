@@ -646,13 +646,22 @@ public strictfp class RobotPlayer {
 				}
 			}
 			if (rc.isReady()) {
-				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
+				
+				//Attempt to expose slanderer. Prioritize highest influence
+				int highestInfluence=0;
+				int targetID=rc.getID();
+				RobotInfo[] nearby=rc.senseNearbyRobots(actionRadius,enemy);
+				for (RobotInfo robot :nearby) {
 					if (robot.getType().canBeExposed()) {
-						if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER)) {
-							rc.expose(robot.ID);
-							return;
+						if(rc.senseRobotAtLocation(robot.getLocation()).getInfluence() > highestInfluence){
+							highestInfluence = rc.senseRobotAtLocation(robot.getLocation()).getInfluence();
+							targetID=robot.getID();
 						}
 					}
+				}
+				if(highestInfluence>0){
+					rc.expose(targetID);
+					return;
 				}
 
 				if (hasDestination) {
@@ -765,13 +774,22 @@ public strictfp class RobotPlayer {
 		if (!rc.isReady())
 			return;
 
-		// Find a target to expose
-		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius, enemy);
-		for (RobotInfo robot : nearby)
-			if (robot.getType().canBeExposed() && rc.isReady()) {
-				rc.expose(robot.getLocation());
-				return;
+		// Find a target to expose. Prioritize one with high influence
+		int highestInfluence=0;
+		int targetID=rc.getID();
+		RobotInfo[] nearby=rc.senseNearbyRobots(actionRadius,enemy);
+		for (RobotInfo robot : nearby) {
+			if (robot.getType().canBeExposed()) {
+				if(rc.senseRobotAtLocation(robot.getLocation()).getInfluence() > highestInfluence){
+					highestInfluence = rc.senseRobotAtLocation(robot.getLocation()).getInfluence();
+					targetID=robot.getID();
+				}
 			}
+		}
+		if(highestInfluence>0){
+			rc.expose(targetID);
+			return;
+		}
 
 		// Move somewhere based on destination, then antigrouping, then randomly
 		Direction anti=antiGroupingMovement();
