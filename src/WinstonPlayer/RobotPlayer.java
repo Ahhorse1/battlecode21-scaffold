@@ -1377,6 +1377,9 @@ public strictfp class RobotPlayer {
 			}
 		}
 
+		if(options.size()==0)
+			return;
+
 		int optionsRandom = (int) (Math.random() * options.size());
 		center = options.get(optionsRandom);
 
