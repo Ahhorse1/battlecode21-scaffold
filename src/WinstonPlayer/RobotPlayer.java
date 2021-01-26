@@ -588,18 +588,17 @@ public strictfp class RobotPlayer {
 					targetDestination = enemyECs.get(random);
 					hasDestination = true;
 				} else {
-					Team enemy = rc.getTeam().opponent();
+					enemy = rc.getTeam().opponent();
 					for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
 						if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 							targetDestination = robot.getLocation();
 							hasDestination = true;
-							enemyECs.add(loc);
+							enemyECs.add(robot.getLocation());
 						}
 					}
 				}
 			}
 			if (rc.isReady()) {
-				Team enemy = rc.getTeam().opponent();
 				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
 					if (robot.getType().canBeExposed()) {
 						if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER)) {
@@ -665,7 +664,6 @@ public strictfp class RobotPlayer {
 		// 2 scan surroundings
 		int enemySlandererCnt = 0;
 		boolean flagSet = false;// Set this to true if we've already set our flag to something important
-		Team enemy = rc.getTeam().opponent();
 		for (RobotInfo robot : rc.senseNearbyRobots(senseRadius)) {
 			if (robot.getType().canBeExposed()) {
 				if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER))
@@ -686,7 +684,7 @@ public strictfp class RobotPlayer {
 					// We've found a neutral enlightenment center!!!! Set flag at all costs
 					rc.setFlag(encodeFlag(2, robot.getLocation(), encodeNeutralECInfluence(robot.getInfluence())));
 					flagSet = true;
-				} else if (!friendlyECs.contains(robot.getLocation)){
+				} else if (!friendlyECs.contains(robot.getLocation())){
 					flagSet = true;
 					rc.setFlag(encodeFlag(3,robot.getLocation()));
 				}
