@@ -252,7 +252,6 @@ public strictfp class RobotPlayer {
 			MapLocation actual;
 			for(MapLocation loc : neutralECs){
 				actual=getMapLocation(loc.x,loc.y);
-				System.out.println("NEUTRAL EC AT: (" + actual.x + "," + actual.y + ").");
 			}
 
 		}
@@ -437,8 +436,9 @@ public strictfp class RobotPlayer {
 						rc.empower(currentLoc.distanceSquaredTo(loc));
 				}
 			}
-		} else if (ecFlag[0] == 1 || ecFlag[0] == 2) {
-			MapLocation targetEC = getMapLocation(ecFlag[1], ecFlag[2]);
+		}
+		if (enemyECs.size()>0) {
+			MapLocation targetEC = enemyECs.get(0);
 			if (rc.isReady()) {
 				if (rc.canMove(currentLoc.directionTo(targetEC))) {
 					rc.move(currentLoc.directionTo(targetEC));
