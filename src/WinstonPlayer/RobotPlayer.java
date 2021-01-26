@@ -25,19 +25,19 @@ public strictfp class RobotPlayer {
 	/**
 	 *
 	 */
-	static ArrayList<MapLocation> enemyECs = new ArrayList<MapLocation>();
-	static ArrayList<MapLocation> friendlyECs = new ArrayList<MapLocation>();
-	static ArrayList<MapLocation> neutralECs = new ArrayList<MapLocation>();
-	static ArrayList<Integer> neutralECInf = new ArrayList<Integer>();
+	static ArrayList<MapLocation> enemyECs = new ArrayList<>();
+	static ArrayList<MapLocation> friendlyECs = new ArrayList<>();
+	static ArrayList<MapLocation> neutralECs = new ArrayList<>();
+	static ArrayList<Integer> neutralECInf = new ArrayList<>();
 
-	static ArrayList<Integer> unitIDs = new ArrayList<Integer>();
+	static ArrayList<Integer> unitIDs = new ArrayList<>();
 
 	/**
 	 * Arraylist of arrays Each array is +1 size larger than it's supposed to be,
 	 * with the unit code in the 0 position The unit code being influence *10 +
 	 * (1/2/3) for (politicians/slanderers/muckrakers)
 	 */
-	static ArrayList<int[]> Units = new ArrayList<int[]>();
+	static ArrayList<int[]> Units = new ArrayList<>();
 
 	/**
 	 * Variables that store Location of Enlightenment Center that created the robot
@@ -184,8 +184,6 @@ public strictfp class RobotPlayer {
 		boolean needsSupport=false;
 		int supportFlag=0;
 		if (unitIDs.size() > 0) {
-			int flagSetPriority = 0;// Set this to the priority of the flag you set
-			// Neutral is priority 4, enemy is priority 3, slanderer storm is priority 2,
 			int id;
 			int[] flag;
 			MapLocation loc;
@@ -199,8 +197,7 @@ public strictfp class RobotPlayer {
 							case 1:// enemy EC
 								if (!enemyECs.contains(loc))
 									enemyECs.add(loc);
-								if (friendlyECs.contains(loc))
-									friendlyECs.remove(loc);
+								friendlyECs.remove(loc);
 								if (neutralECs.contains(loc)) {
 									int index = neutralECs.indexOf(loc);
 									neutralECs.remove(loc);
@@ -219,8 +216,7 @@ public strictfp class RobotPlayer {
 									friendlyECs.add(loc);
 									rc.setFlag(encodeFlag(3, loc));
 								}
-								if (enemyECs.contains(loc))
-									enemyECs.remove(loc);
+								enemyECs.remove(loc);
 								if (neutralECs.contains(loc)) {
 									int index = neutralECs.indexOf(loc);
 									neutralECs.remove(loc);
@@ -335,10 +331,8 @@ public strictfp class RobotPlayer {
 			case 1:// enemy EC
 				if (!enemyECs.contains(loc))
 					enemyECs.add(loc);
-				if (friendlyECs.contains(loc))
-					friendlyECs.remove(loc);
-				if (neutralECs.contains(loc))
-					neutralECs.remove(loc);
+				friendlyECs.remove(loc);
+				neutralECs.remove(loc);
 				break;
 			case 2: // neutral HQ
 				if (!neutralECs.contains(loc))
@@ -347,10 +341,8 @@ public strictfp class RobotPlayer {
 			case 3: // Friendly EC
 				if (!friendlyECs.contains(loc))
 					friendlyECs.add(loc);
-				if (enemyECs.contains(loc))
-					enemyECs.remove(loc);
-				if (neutralECs.contains(loc))
-					neutralECs.remove(loc);
+				enemyECs.remove(loc);
+				neutralECs.remove(loc);
 				break;
 			case 14:
 				RobotInfo[] nearby = rc.senseNearbyRobots(rc.getType().actionRadiusSquared, enemy);
@@ -372,15 +364,12 @@ public strictfp class RobotPlayer {
 				} else if (robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(loc)) {
 					friendlyECs.add(loc);
 					rc.setFlag(encodeFlag(3, loc));
-					if (neutralECs.contains(loc))
-						neutralECs.remove(loc);
+					neutralECs.remove(loc);
 				} else if (robot.getTeam().equals(enemy) && !enemyECs.contains(loc)) {// Found an enemy EC
 					enemyECs.add(loc);
 					rc.setFlag(encodeFlag(1, loc));
-					if (neutralECs.contains(loc))
-						neutralECs.remove(loc);
-					if (friendlyECs.contains(loc))
-						friendlyECs.remove(loc);
+					neutralECs.remove(loc);
+					friendlyECs.remove(loc);
 				}
 			}
 		}
@@ -696,10 +685,8 @@ public strictfp class RobotPlayer {
 			case 1:// enemy EC
 				if (!enemyECs.contains(loc))
 					enemyECs.add(loc);
-				if (friendlyECs.contains(loc))
-					friendlyECs.remove(loc);
-				if (neutralECs.contains(loc))
-					neutralECs.remove(loc);
+				friendlyECs.remove(loc);
+				neutralECs.remove(loc);
 				break;
 			case 2: // neutral HQ
 				if (!neutralECs.contains(loc))
@@ -708,10 +695,8 @@ public strictfp class RobotPlayer {
 			case 3: // Friendly EC
 				if (!friendlyECs.contains(loc))
 					friendlyECs.add(loc);
-				if (enemyECs.contains(loc))
-					enemyECs.remove(loc);
-				if (neutralECs.contains(loc))
-					neutralECs.remove(loc);
+				enemyECs.remove(loc);
+				neutralECs.remove(loc);
 				break;
 			case 12: // A bro needs help (there's an enemy slanderer storm somewhere)
 				targetDestination = loc;
@@ -749,7 +734,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		if (enemySlandererCnt >= 4 && flagSet == false) { // notificationCutoff is set at 4, can increase whenever
+		if (enemySlandererCnt >= 4 && !flagSet) { // notificationCutoff is set at 4, can increase whenever
 			// If the number of enemies warrants calling for reinforcements and there's not
 			// more important info to send
 			rc.setFlag(encodeFlag(12, rc.getLocation()));
@@ -815,8 +800,8 @@ public strictfp class RobotPlayer {
 		int selfY = rc.getLocation().y;
 		int sensorRadius = rc.getType().sensorRadiusSquared;
 		int quadrantOne = 0, quadrantTwo = 0, quadrantThree = 0, quadrantFour = 0;
-		Boolean furtherX = false;
-		Boolean furtherY = false;
+		boolean furtherX;
+		boolean furtherY;
 		RobotInfo[] nearby = rc.senseNearbyRobots(sensorRadius, rc.getTeam());
 		for (RobotInfo robot : nearby) {
 			MapLocation location = robot.getLocation();
@@ -1297,22 +1282,22 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void replace() throws GameActionException {
-		for (int i = 0; i < Units.size(); i++) {
-			int x = Units.get(i)[0];
+		for (int[] unit : Units) {
+			int x = unit[0];
 			if (x % 10 == 2) {
-				for (int ii = 1; ii < Units.get(i).length; ii++) {
-					if (Units.get(i)[ii] == 0) {
-					} else if (!rc.canGetFlag(Units.get(i)[ii])) {
-						Units.get(i)[ii] = -1;
-					} else if (rc.getFlag(Units.get(i)[ii]) == 10) {
-						Units.get(i)[ii] = -1;
+				for (int ii = 1; ii < unit.length; ii++) {
+					if (unit[ii] == 0) {
+					} else if (!rc.canGetFlag(unit[ii])) {
+						unit[ii] = -1;
+					} else if (rc.getFlag(unit[ii]) == 10) {
+						unit[ii] = -1;
 					}
 				}
 			} else {
-				for (int iii = 1; iii < Units.get(i).length; iii++) {
-					if (Units.get(i)[iii] == 0) {
-					} else if (!rc.canGetFlag(Units.get(i)[iii])) {
-						Units.get(i)[iii] = -1;
+				for (int iii = 1; iii < unit.length; iii++) {
+					if (unit[iii] == 0) {
+					} else if (!rc.canGetFlag(unit[iii])) {
+						unit[iii] = -1;
 					}
 				}
 			}
@@ -1322,14 +1307,13 @@ public strictfp class RobotPlayer {
 	/**
 	 * Resizes an array to the size passed in.
 	 * 
-	 * @param array, old array
+	 * @param old, old array
 	 * @param size, size of new array
 	 * @return resized Array
 	 * @ensures resized.length == size and resized contains the values of array
 	 * @throws GameActionException
 	 */
-	static int[] resizeArray(int[] array, int size) throws GameActionException {
-		int[] old = array;
+	static int[] resizeArray(int[] old, int size) throws GameActionException {
 		int[] resized = new int[old.length + size];
 		for (int i = 0; i < old.length; i++) {
 			resized[i] = old[i];
@@ -1461,13 +1445,13 @@ public strictfp class RobotPlayer {
 	static void findDestination() throws GameActionException {
 		RobotInfo[] nearby = rc.senseNearbyRobots(2);
 		MapLocation center = rc.getLocation();
-		ArrayList<MapLocation> options = new ArrayList<MapLocation>();
+		ArrayList<MapLocation> options = new ArrayList<>();
 
-		for (int i = 0; i < nearby.length; i++) {
-			int id = nearby[i].getID();
-			if (nearby[i].getType().equals(RobotType.ENLIGHTENMENT_CENTER)
-					|| decodeFlag(rc.getFlag(nearby[i].getID()))[3] == 11) {
-				options.add(nearby[i].getLocation());
+		for (RobotInfo robotInfo : nearby) {
+			int id = robotInfo.getID();
+			if (robotInfo.getType().equals(RobotType.ENLIGHTENMENT_CENTER)
+					|| decodeFlag(rc.getFlag(robotInfo.getID()))[3] == 11) {
+				options.add(robotInfo.getLocation());
 			}
 		}
 
@@ -1836,8 +1820,8 @@ public strictfp class RobotPlayer {
 
 		}
 		int tempCounter = 0;
-		for (int i = 0; i < atCorner.length; i++) {
-			if (atCorner[i])
+		for (boolean b : atCorner) {
+			if (b)
 				tempCounter++;
 		}
 		if (tempCounter >= 2) {
@@ -1867,8 +1851,8 @@ public strictfp class RobotPlayer {
 		}
 
 		int tempCounter = 0;
-		for (int i = 0; i < atCorner.length; i++) {
-			if (atCorner[i])
+		for (boolean b : atCorner) {
+			if (b)
 				tempCounter++;
 		}
 		if (tempCounter >= 2) {
