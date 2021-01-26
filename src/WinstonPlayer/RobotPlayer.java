@@ -599,7 +599,6 @@ public strictfp class RobotPlayer {
 				}
 			}
 			if (rc.isReady()) {
-
 				Team enemy = rc.getTeam().opponent();
 				for (RobotInfo robot : rc.senseNearbyRobots(actionRadius, enemy)) {
 					if (robot.getType().canBeExposed()) {
@@ -788,10 +787,10 @@ public strictfp class RobotPlayer {
 			southeast = rc.sensePassability(rc.adjacentLocation((Direction.SOUTHEAST)));
 
 		if (quadrantOne == quadrantTwo && quadrantTwo == quadrantThree && quadrantThree == quadrantFour) {
-			quadrantOne = (int) (Math.random() + 1) * 10;
-			quadrantTwo = (int) (Math.random() + 1) * 10;
-			quadrantThree = (int) (Math.random() + 1) * 10;
-			quadrantFour = (int) (Math.random() + 1) * 10;
+			quadrantOne = (int)((Math.random() + 1) * 10);
+			quadrantTwo = (int)((Math.random() + 1) * 10);
+			quadrantThree = (int)((Math.random() + 1) * 10);
+			quadrantFour = (int)((Math.random() + 1) * 10);
 		}
 		if (rc.canSenseLocation(rc.getLocation().translate(2, 2)) && quadrantOne < quadrantTwo
 				&& quadrantOne < quadrantThree && quadrantOne < quadrantFour) {
@@ -820,7 +819,7 @@ public strictfp class RobotPlayer {
 			return Direction.WEST;
 		}
 
-		if(rc.canSenseLocation(rc.getLocation().translate(2,-2))) {
+		if(rc.canSenseLocation(rc.getLocation().translate(-2,2))) {
 			// Go to quadrant IV if not going to any of the other quadrants
 			if (northwest >= north && northwest >= west)
 				return Direction.NORTHWEST;
