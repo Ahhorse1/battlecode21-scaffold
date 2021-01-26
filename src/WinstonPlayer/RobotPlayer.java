@@ -181,11 +181,9 @@ public strictfp class RobotPlayer {
 			MapLocation loc;
 			for (int i = 0; i < unitIDs.size(); i++) {
 				id = unitIDs.get(i);
-				if (rc.canGetFlag(id)) {
+				if (rc.canGetFlag(id)&&rc.getFlag(id)>0) {
 					flag = decodeFlag(rc.getFlag(id));
 					loc = getMapLocation(flag[1], flag[2]);
-
-					// System.out.println("GOT COMMUNICATION FROM: (" + loc.x + "," + loc.y + ").");
 					switch (flag[0]) {
 					case 1:// enemy EC
 						if (!enemyECs.contains(loc))
@@ -223,8 +221,10 @@ public strictfp class RobotPlayer {
 						int myFlag = encodeFlag(12, loc);
 						if (rc.canSetFlag(myFlag))
 							rc.setFlag(myFlag);
+						break;
 					case 15:
 						unitIDs.remove(i);
+						break;
 					}
 				} else {
 					unitIDs.remove(i);// This means the robot went bye-bye
@@ -906,7 +906,7 @@ public strictfp class RobotPlayer {
 
 	static void runStageThree() throws GameActionException {
 		if (rc.canBid(10) && rc.getInfluence() > 250) {
-			int random = (int) ((Math.random() + .1) * 10);
+			int random = (int)((Math.random() + .1) * 10);
 			rc.bid(random);
 		} else if (rc.canBid(1)) {
 			rc.bid(1);
