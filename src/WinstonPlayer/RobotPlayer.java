@@ -1383,23 +1383,23 @@ public strictfp class RobotPlayer {
 				}
 
 				if (rc.canSenseLocation(ecLoc.translate(-2, 0))) {
-					if (rc.senseRobotAtLocation(ecLoc.translate(2, 0)) == null) {
-						latticeDestination = ecLoc.translate(2, 0);
+					if (rc.senseRobotAtLocation(ecLoc.translate(-2, 0)) == null) {
+						latticeDestination = ecLoc.translate(-2, 0);
 						return;
 					}
 				}
 
 				if (rc.canSenseLocation(ecLoc.translate(-2, 2))) {
-					if (rc.senseRobotAtLocation(ecLoc.translate(2, 2)) == null) {
-						latticeDestination = ecLoc.translate(2, 2);
+					if (rc.senseRobotAtLocation(ecLoc.translate(-2, 2)) == null) {
+						latticeDestination = ecLoc.translate(-2, 2);
 						hasDestination = true;
 						return;
 					}
 				}
 
 				if (rc.canSenseLocation(ecLoc.translate(-2, -2))) {
-					if (rc.senseRobotAtLocation(ecLoc.translate(2, -2)) == null) {
-						latticeDestination = ecLoc.translate(2, -2);
+					if (rc.senseRobotAtLocation(ecLoc.translate(-2, -2)) == null) {
+						latticeDestination = ecLoc.translate(-2, -2);
 						hasDestination = true;
 						return;
 					}
