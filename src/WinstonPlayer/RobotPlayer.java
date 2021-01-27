@@ -550,7 +550,7 @@ public strictfp class RobotPlayer {
 						enemyECs.add(loc);
 				if (ECFlag[0] == 3) {
 					enemyECs.remove(loc);
-					if (destination.equals(loc))
+					if (hasDestination && destination.equals(loc))
 						hasDestination = false;
 				}
 			}
