@@ -573,8 +573,9 @@ public strictfp class RobotPlayer {
 				// Attempt to expose slanderer. Prioritize highest influence
 				int highestInfluence = 0;
 				int targetID = rc.getID();
+				nearby = rc.senseNearbyRobots(actionRadius, enemy);
 				for (RobotInfo robot : nearby) {
-					if (robot.getType().canBeExposed() && robot.getTeam().equals(enemy)) {
+					if (robot.getType().canBeExposed()) {
 						if (rc.senseRobotAtLocation(robot.getLocation()).getInfluence() > highestInfluence) {
 							highestInfluence = rc.senseRobotAtLocation(robot.getLocation()).getInfluence();
 							targetID = robot.getID();
