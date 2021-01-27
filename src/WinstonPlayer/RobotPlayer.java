@@ -422,7 +422,7 @@ public strictfp class RobotPlayer {
 			}
 			for (RobotInfo robot : attackable) {
 				distTo = robot.getLocation().distanceSquaredTo(currentLoc);
-				if (distTo <= 2 || rc.senseNearbyRobots(distTo, rc.getTeam()).length == 0) {
+				if (distTo <= 2 || rc.senseNearbyRobots(distTo, rc.getTeam()).length <= 1) {
 					rc.empower(distTo);
 					return;
 				}
@@ -703,10 +703,11 @@ public strictfp class RobotPlayer {
 
 		// Move somewhere based on destination, then antigrouping, then randomly
 		Direction anti = antiGroupingMovement();
-		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
-			rc.move(rc.getLocation().directionTo(targetDestination));
+		if (haveDestination && navigateTo(targetDestination))
+			return;
 		else if (rc.canMove(anti))// Run antigrouping stuff
 			rc.move(anti);
+			return;
 		else {
 			doRandomMove();
 		}
