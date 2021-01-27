@@ -1,4 +1,4 @@
-package WinstonPlayer;
+package lastNight;
 
 import battlecode.common.*;
 import java.util.ArrayList;
@@ -6,36 +6,16 @@ import java.util.Arrays;
 
 public strictfp class RobotPlayer {
 	static RobotController rc;
-	static int turnsWaiting;
+
 	static boolean isAtCorner = false;
-	static int muckrakerMission;
 
 	static final RobotType[] spawnableRobot = { RobotType.POLITICIAN, RobotType.SLANDERER, RobotType.MUCKRAKER, };
 
 	static final Direction[] directions = { Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST,
 			Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST, };
 
-	static final Direction[][] directionPriorityForCorner = {
-			{Direction.NORTHWEST,Direction.NORTH,Direction.WEST,Direction.NORTHEAST,Direction.SOUTHWEST,Direction.EAST,Direction.SOUTH,Direction.SOUTHEAST},
-			{Direction.NORTHEAST,Direction.NORTH,Direction.EAST,Direction.NORTHWEST,Direction.SOUTHEAST,Direction.WEST,Direction.SOUTH,Direction.SOUTHWEST},
-			{Direction.SOUTHEAST,Direction.SOUTH,Direction.EAST,Direction.NORTHEAST,Direction.SOUTHWEST,Direction.NORTH,Direction.WEST,Direction.NORTHWEST},
-			{Direction.SOUTHWEST,Direction.SOUTH,Direction.WEST,Direction.SOUTHEAST,Direction.NORTHWEST,Direction.NORTH,Direction.EAST,Direction.NORTHEAST}
-	};
-	static final Direction[][] directionPriorityForScouts = {
-			{Direction.NORTHWEST,Direction.NORTH,Direction.WEST,Direction.NORTHEAST,Direction.SOUTHWEST,Direction.EAST,Direction.SOUTH,Direction.SOUTHEAST},
-			{Direction.NORTH, Direction.NORTHWEST, Direction.NORTHEAST, Direction.EAST, Direction.WEST, Direction.SOUTHWEST, Direction.SOUTHEAST, Direction.SOUTH},
-			{Direction.NORTHEAST,Direction.NORTH,Direction.EAST,Direction.NORTHWEST,Direction.SOUTHEAST,Direction.WEST,Direction.SOUTH,Direction.SOUTHWEST},
-			{Direction.EAST, Direction.NORTHEAST, Direction.SOUTHEAST, Direction.NORTH, Direction.SOUTH, Direction.NORTHWEST, Direction.SOUTHWEST, Direction.WEST},
-			{Direction.SOUTHEAST,Direction.SOUTH,Direction.EAST,Direction.NORTHEAST,Direction.SOUTHWEST,Direction.NORTH,Direction.WEST,Direction.NORTHWEST},
-			{Direction.SOUTH, Direction.SOUTHWEST, Direction.SOUTHEAST, Direction.WEST, Direction.EAST, Direction.NORTHWEST, Direction.NORTHEAST, Direction.NORTH},
-			{Direction.SOUTHWEST,Direction.SOUTH,Direction.WEST,Direction.SOUTHEAST,Direction.NORTHWEST,Direction.NORTH,Direction.EAST,Direction.NORTHEAST},
-			{Direction.WEST, Direction.NORTHWEST, Direction.SOUTHWEST, Direction.SOUTH, Direction.NORTH, Direction.NORTHEAST, Direction.SOUTHEAST, Direction.EAST}
-	};
 	static int turnCount;
-	static int lastRoundBid = 1;
-	static int lastRoundVotes = 0;
-	static int roundsPlateaued = 0;
-	static int createdScouts=0;
+
 	/**
 	 * stores schema of the communications and how much to shift each n-1 parameter
 	 */
@@ -97,7 +77,7 @@ public strictfp class RobotPlayer {
 	 * destination
 	 */
 	static boolean protecting = false;
-	static boolean hasDestination=false;
+	static boolean hasDestination;
 	static MapLocation destination;
 
 	/**
@@ -203,7 +183,6 @@ public strictfp class RobotPlayer {
 	static void seeWhatsUp() throws GameActionException{
 		boolean needsSupport=false;
 		int supportFlag=0;
-		boolean setFlag=false;
 		if (unitIDs.size() > 0) {
 			int id;
 			int[] flag;
@@ -224,8 +203,6 @@ public strictfp class RobotPlayer {
 									neutralECs.remove(loc);
 									neutralECInf.remove(index);
 								}
-								if(setFlag==false)
-									rc.setFlag(encodeFlag(1,loc));
 								break;
 							case 2: // neutral HQ
 								if (!neutralECs.contains(loc)) {
@@ -233,21 +210,18 @@ public strictfp class RobotPlayer {
 									int influence = flag[3];
 									neutralECInf.add(influence);
 								}
-								if(setFlag==false)
-									rc.setFlag(encodeFlag(2,loc));
 								break;
 							case 3: // Friendly EC
 								if (!friendlyECs.contains(loc)) {
 									friendlyECs.add(loc);
-									setFlag=true;
 									rc.setFlag(encodeFlag(3, loc));
 								}
 								enemyECs.remove(loc);
 								if (neutralECs.contains(loc)) {
 									int index = neutralECs.indexOf(loc);
+									neutralECs.remove(loc);
 									neutralECInf.remove(index);
 								}
-								neutralECs.remove(loc);
 								break;
 							case 12: // Slanderer storm
 								needsSupport=true;
@@ -263,10 +237,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		System.out.println("RECOGNIZING: " + neutralECs.size() + " Neutral ECs & " + enemyECs.size() + " enemy ones and " + friendlyECs.size() + " friendly ones");
 		// Actually set the flag
-		if(setFlag==true)
-			return;
 		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
 		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
@@ -277,8 +248,21 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runEnlightenmentCenter() throws GameActionException {
+		if(turnCount%10==0){
+			MapLocation actual;
+			for(MapLocation loc : neutralECs){
+				actual=getMapLocation(loc.x,loc.y);
+			}
+
+		}
 
 		seeWhatsUp();
+		// Actually set the flag
+		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
+			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
+		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
+			rc.setFlag(encodeFlag(1, enemyECs.get(0)));
+		}
 
 		if (runCorner)
 			updateCorner();
@@ -305,6 +289,11 @@ public strictfp class RobotPlayer {
 
 	static void runCapturedEnlightenmentCenter() throws GameActionException {
 		seeWhatsUp();
+		if (neutralECs.size() > 0 && turnCount % 2 == 0) {
+			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
+		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
+			rc.setFlag(encodeFlag(1, enemyECs.get(0)));
+		}
 		if (turnCount <= 20) {
 			if (rc.isReady()) {
 				int x = nearestBreakpointv2();
@@ -318,7 +307,6 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runPolitician() throws GameActionException {
-		rc.setFlag(0);
 		if (turnCount == 1 && rc.getFlag(rc.getID()) == 0)
 			firstTurn();
 		else if (turnCount == 1)
@@ -384,8 +372,8 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		System.out.println("RECOGNIZING: " + neutralECs.size() + " Neutral ECs & " + enemyECs.size() + " enemy ones and " + friendlyECs.size() + " friendly ones");
-		if (rc.getFlag(rc.getID()) == 0 && turnCount<=4) {
+
+		if (rc.getFlag(rc.getID()) == 0) {
 			if (rc.getInfluence() % 10 == 0) {
 				politicianMission = 10;
 				rc.setFlag(encodeFlag(0, 0, 0, 10));
@@ -394,22 +382,15 @@ public strictfp class RobotPlayer {
 
 
 		if (rc.isReady()) {
-			//Lattice structure
 			if (politicianMission == 10) {
 				latticeStructure();
 				return;
 			} else if (politicianMission == 11) {
 				if(turnCount>=40)
 					politicianMission=12;
-				RobotInfo[] attackable = rc.senseNearbyRobots(1, enemy);
-				if (rc.senseNearbyRobots(1,enemy).length != 0){
-					rc.empower(1);
-					return;
-				}
-				if (rc.senseNearbyRobots(2,enemy).length != 0){
-					rc.empower(2);
-					return;
-				}
+				RobotInfo[] attackableRadiusOne = rc.senseNearbyRobots(3, enemy);
+				if (attackableRadiusOne.length != 0)
+					rc.empower(3);
 				return;
 			}
 		} else
@@ -420,21 +401,20 @@ public strictfp class RobotPlayer {
 
 		// Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
-			MapLocation target=neutralECs.get(0);
-			int minDistance=currentLoc.distanceSquaredTo(neutralECs.get(0));
-			for(MapLocation x : neutralECs){
-				System.out.println("NEUTRAL W/ DISTANCE: " + currentLoc.distanceSquaredTo(x));
-				if(currentLoc.distanceSquaredTo(x)<minDistance){
-					minDistance=currentLoc.distanceSquaredTo(x);
-					target=x;
-				}
+			MapLocation actual;
+
+			for(MapLocation ecl : neutralECs){
+				actual=getMapLocation(ecl.x,ecl.y);
+				System.out.println("NEUTRAL EC AT: (" + actual.x + "," + actual.y + ").");
 			}
-			int dist = currentLoc.distanceSquaredTo(target);
-			if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length <= 1)) {
+			loc = neutralECs.get(0);
+			int dist = currentLoc.distanceSquaredTo(loc);
+			if (dist <= 2 || (dist <= rc.getType().actionRadiusSquared && rc.detectNearbyRobots(dist).length == 1)) {
 				// Empower if we're close enough or if nothing's in the way
 				rc.empower(dist);
 				return;
-			} else if (navigateTo(target)) {
+			} else if (rc.canMove(currentLoc.directionTo(loc))) {
+				rc.move(currentLoc.directionTo(loc));
 				return;
 			} else if (dist <= rc.getType().actionRadiusSquared) {// We may be blocked from attacking
 				rc.empower(dist);
@@ -442,41 +422,35 @@ public strictfp class RobotPlayer {
 			}
 		}
 
-
 		// Attempt to attack a nearby unit
 		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, rc.getTeam().opponent());
-		int distTo;
 		if (attackable.length > 0) {
-			for(RobotInfo robot : attackable) {
-				distTo = robot.getLocation().distanceSquaredTo(currentLoc);
-				if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){
-					if(distTo<=2){
-						rc.empower(distTo);
-						return;
-					}
-					if(navigateTo(robot.getLocation()))
-						return;
-					rc.empower(distTo);
-					return;
+			for (int i = 0; i < attackable.length; i++) {
+				if (attackable[i].getLocation().isWithinDistanceSquared(currentLoc, 2)) {
+					rc.empower(2);
 				}
-			}
-			for (RobotInfo robot : attackable) {
-				distTo = robot.getLocation().distanceSquaredTo(currentLoc);
-				if (distTo <=2 || rc.senseNearbyRobots(distTo,rc.getTeam()).length==0) {
-					rc.empower(distTo);
-					return;
+				if (attackable[i].getType() == RobotType.ENLIGHTENMENT_CENTER) {
+					if (rc.canMove(currentLoc.directionTo(attackable[i].location)))
+						rc.move(currentLoc.directionTo(attackable[i].location));
+					else if (currentLoc.isWithinDistanceSquared(loc, rc.getType().actionRadiusSquared))
+						rc.empower(currentLoc.distanceSquaredTo(loc));
 				}
 			}
 		}
-
 		if (enemyECs.size()>0) {
-			MapLocation targetEC=enemyECs.get(0);
-			if(navigateTo(targetEC))
-				return;
-			else if (rc.canMove(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft())) {
-				rc.move(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft());
-			} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateRight().rotateRight())) {
-				rc.move(currentLoc.directionTo(targetEC).rotateRight().rotateRight());
+			MapLocation targetEC = enemyECs.get(0);
+			if (rc.isReady()) {
+				if (rc.canMove(currentLoc.directionTo(targetEC))) {
+					rc.move(currentLoc.directionTo(targetEC));
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateLeft())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateLeft());
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateRight())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateRight());
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateLeft().rotateLeft());
+				} else if (rc.canMove(currentLoc.directionTo(targetEC).rotateRight().rotateRight())) {
+					rc.move(currentLoc.directionTo(targetEC).rotateRight().rotateRight());
+				}
 			}
 		}
 
@@ -494,7 +468,6 @@ public strictfp class RobotPlayer {
 
 	static void runSlanderer() throws GameActionException {
 		int ECFlag;
-		rc.setFlag(0);
 		if (turnCount == 1) {
 			firstTurn();
 			ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
@@ -515,19 +488,57 @@ public strictfp class RobotPlayer {
 		if (cornerNum > 0) {
 			switch (cornerNum) {
 			case 30:
-				navigateTo(rc.getLocation().translate(-1,1));
+				if (rc.canMove(Direction.NORTHWEST)) {
+					rc.move(Direction.NORTHWEST);
+					return;
+				} else if (rc.canMove(Direction.NORTH)) {
+					rc.move(Direction.NORTH);
+					return;
+				} else if (rc.canMove(Direction.WEST)) {
+					rc.move(Direction.WEST);
+					return;
+				}
 				break;
 			case 31:
-				navigateTo(rc.getLocation().translate(1,1));
+				if (rc.canMove(Direction.NORTHEAST)) {
+					rc.move(Direction.NORTHEAST);
+					return;
+				} else if (rc.canMove(Direction.NORTH)) {
+					rc.move(Direction.NORTH);
+					return;
+				} else if (rc.canMove(Direction.EAST)) {
+					rc.move(Direction.EAST);
+					return;
+				}
 				break;
 			case 32:
-				navigateTo(rc.getLocation().translate(1,-1));
+				if (rc.canMove(Direction.SOUTHEAST)) {
+					rc.move(Direction.SOUTHEAST);
+					return;
+				} else if (rc.canMove(Direction.SOUTH)) {
+					rc.move(Direction.SOUTH);
+					return;
+				} else if (rc.canMove(Direction.EAST)) {
+					rc.move(Direction.EAST);
+					return;
+				}
 				break;
 			case 33:
-				navigateTo(rc.getLocation().translate(-1,-1));
+				if (rc.canMove(Direction.SOUTHWEST)) {
+					rc.move(Direction.SOUTHWEST);
+					return;
+				} else if (rc.canMove(Direction.SOUTH)) {
+					rc.move(Direction.SOUTH);
+					return;
+				} else if (rc.canMove(Direction.WEST)) {
+					rc.move(Direction.WEST);
+					return;
+				}
 				break;
 			}
-		} else {
+		} else
+
+		{
 			if (rc.getLocation().isWithinDistanceSquared(ecLoc, 25))
 				tryMove(randomDirection());
 		}
@@ -541,7 +552,6 @@ public strictfp class RobotPlayer {
 
 	static void runMuckraker() throws GameActionException {
 		// Define some constants
-		rc.setFlag(0);
 		int senseRadius = RobotType.MUCKRAKER.detectionRadiusSquared;
 		int actionRadius = RobotType.MUCKRAKER.actionRadiusSquared;
 		Team enemy = rc.getTeam().opponent();
@@ -550,68 +560,88 @@ public strictfp class RobotPlayer {
 		if (turnCount == 1) {
 			firstTurn();// Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
-			if(ECFlag[3]>=2 && ECFlag[3]<=9){
-				System.out.println("I HAVE MISSION: " + ECFlag[3]);
-				muckrakerMission=ECFlag[3];//Get our mission; see strategy doc for meaning. It'll be between 2 and 9
-			}
-			if(ECFlag[3]>=20 && ECFlag[3]<=23){
-				cornerMission=ECFlag[3];
+			switch (ECFlag[3]) {
+			case 20:
+				rc.setFlag(encodeFlag(0, 0, 0, 20));
+				cornerMission = 20;
+				break;
+			case 21:
+				rc.setFlag(encodeFlag(0, 0, 0, 21));
+				cornerMission = 21;
+				break;
+			case 22:
+				rc.setFlag(encodeFlag(0, 0, 0, 22));
+				cornerMission = 22;
+				break;
+			case 23:
+				rc.setFlag(encodeFlag(0, 0, 0, 23));
+				cornerMission = 23;
+				break;
 			}
 		}
 
-		MapLocation targetDestination=rc.getLocation();
-		boolean haveDestination=false;
+		MapLocation targetDestination = rc.getLocation();// Set this to something if we got some place to go (i.e. go
+															// help out a bro)
+		boolean haveDestination = false;// Set this to true if we got some place to go
 
 		if (turnCount == 200) {
 			swarmMuckraker = true;
 			rc.setFlag(encodeFlag(15, 0, 0, 0));
-		}
-
-		if (swarmMuckraker) {
-			MapLocation currentLoc = rc.getLocation();
-
-			//Update info from EC
 			if (rc.canGetFlag(enlightenmentCenterID)) {
 				int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 				MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
 				if (ECFlag[0] == 1)
 					if (!enemyECs.contains(loc))
 						enemyECs.add(loc);
-				if(ECFlag[0] ==3) {
-					enemyECs.remove(loc);
-					if(targetDestination.equals(loc))
-						hasDestination=false;
-				}
-			}
 
-			//Update info
-			RobotInfo[] nearby = rc.senseNearbyRobots(senseRadius);
-			for(RobotInfo robot : nearby){
-				if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)){
-					MapLocation loc = robot.getLocation();
-					if(robot.getTeam().equals(rc.getTeam())) {
-						enemyECs.remove(loc);
-						if (targetDestination.equals(loc))
-							hasDestination = false;
-					}else if(robot.getTeam().equals(enemy)){
-						enemyECs.add(loc);
+			}
+			if (enemyECs.size() > 0) {
+				int random = (int) (Math.random() * enemyECs.size());
+				targetDestination = enemyECs.get(random);
+				hasDestination = true;
+			} else {
+				for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
+					if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+						targetDestination = robot.getLocation();
 						hasDestination = true;
-						destination = loc;
 					}
 				}
 			}
+		}
 
-			//Get destination
-			if (!hasDestination && enemyECs.size() > 0 ) {
-					targetDestination = enemyECs.get(0);
+		if (swarmMuckraker) {
+			MapLocation currentLoc = rc.getLocation();
+			if (!hasDestination) {
+				if (rc.canGetFlag(enlightenmentCenterID)) {
+					int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+					MapLocation loc = getMapLocation(ECFlag[1], ECFlag[2]);
+					if (ECFlag[0] == 1)
+						if (!enemyECs.contains(loc))
+							enemyECs.add(loc);
+
+				}
+				if (enemyECs.size() > 0) {
+					int random = (int) ((Math.random() + .1) * enemyECs.size());
+					targetDestination = enemyECs.get(random);
 					hasDestination = true;
+				} else {
+					for (RobotInfo robot : rc.senseNearbyRobots(senseRadius, enemy)) {
+						if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+							targetDestination = robot.getLocation();
+							hasDestination = true;
+							enemyECs.add(robot.getLocation());
+						}
+					}
+				}
 			}
 			if (rc.isReady()) {
+				
 				//Attempt to expose slanderer. Prioritize highest influence
 				int highestInfluence=0;
 				int targetID=rc.getID();
+				RobotInfo[] nearby=rc.senseNearbyRobots(actionRadius,enemy);
 				for (RobotInfo robot :nearby) {
-					if (robot.getType().canBeExposed() && robot.getTeam().equals(enemy)) {
+					if (robot.getType().canBeExposed()) {
 						if(rc.senseRobotAtLocation(robot.getLocation()).getInfluence() > highestInfluence){
 							highestInfluence = rc.senseRobotAtLocation(robot.getLocation()).getInfluence();
 							targetID=robot.getID();
@@ -625,23 +655,24 @@ public strictfp class RobotPlayer {
 
 				if (hasDestination) {
 					//System.out.println("Am Swarming" + targetDestination.x + ", " + targetDestination.y);
-					if(navigateTo(targetDestination)){
-						return;
-					}else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateLeft().rotateLeft())) {
+					if (rc.canMove(currentLoc.directionTo(targetDestination))) {
+						rc.move(currentLoc.directionTo(targetDestination));
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateLeft())) {
+						rc.move(currentLoc.directionTo(targetDestination).rotateLeft());
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateRight())) {
+						rc.move(currentLoc.directionTo(targetDestination).rotateRight());
+					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateLeft().rotateLeft())) {
 						rc.move(currentLoc.directionTo(targetDestination).rotateLeft().rotateLeft());
-						return;
 					} else if (rc.canMove(currentLoc.directionTo(targetDestination).rotateRight().rotateRight())) {
 						rc.move(currentLoc.directionTo(targetDestination).rotateRight().rotateRight());
-						return;
 					}
 				}
 
 			}
 			Direction anti=antiGroupingMovement();
-			if (rc.canMove(anti)) {// Run antigrouping stuff
+			if (rc.canMove(anti))// Run antigrouping stuff
 				rc.move(anti);
-				return;
-			} else
+			else
 				doRandomMove();
 			return;
 		}
@@ -677,8 +708,7 @@ public strictfp class RobotPlayer {
 		// 2 scan surroundings
 		int enemySlandererCnt = 0;
 		boolean flagSet = false;// Set this to true if we've already set our flag to something important
-		RobotInfo[] nearby = rc.senseNearbyRobots(senseRadius);
-		for (RobotInfo robot : nearby) {
+		for (RobotInfo robot : rc.senseNearbyRobots(senseRadius)) {
 			if (robot.getType().canBeExposed()) {
 				if (robot.getTeam().equals(enemy) && robot.getType().equals(RobotType.SLANDERER))
 					enemySlandererCnt++;
@@ -691,13 +721,14 @@ public strictfp class RobotPlayer {
 				}
 			} else if (robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
 				if (robot.getTeam().equals(enemy) && !enemyECs.contains(robot.getLocation())) {
+					// Found new enemy HQ
 					rc.setFlag(encodeFlag(1, robot.getLocation()));
 					flagSet = true;
 				} else if (robot.getTeam().equals(Team.NEUTRAL)) {
 					// We've found a neutral enlightenment center!!!! Set flag at all costs
 					rc.setFlag(encodeFlag(2, robot.getLocation(), encodeNeutralECInfluence(robot.getInfluence())));
 					flagSet = true;
-				} else if (robot.getTeam().equals(rc.getTeam()) && !friendlyECs.contains(robot.getLocation())){
+				} else if (!friendlyECs.contains(robot.getLocation())){
 					flagSet = true;
 					rc.setFlag(encodeFlag(3,robot.getLocation()));
 				}
@@ -708,12 +739,6 @@ public strictfp class RobotPlayer {
 			// more important info to send
 			rc.setFlag(encodeFlag(12, rc.getLocation()));
 		}
-
-		if(muckrakerMission>=2 && muckrakerMission<=9)
-			if(rc.isReady())
-				searchOtherECs();
-			else
-				return;
 
 		if (isCornerRunner()) {
 			int ECFlagMsg = decodeFlag(rc.getFlag(enlightenmentCenterID))[3];
@@ -737,7 +762,7 @@ public strictfp class RobotPlayer {
 		// Find a target to expose. Prioritize one with high influence
 		int highestInfluence=0;
 		int targetID=rc.getID();
-		nearby=rc.senseNearbyRobots(actionRadius,enemy);
+		RobotInfo[] nearby=rc.senseNearbyRobots(actionRadius,enemy);
 		for (RobotInfo robot : nearby) {
 			if (robot.getType().canBeExposed()) {
 				if(rc.senseRobotAtLocation(robot.getLocation()).getInfluence() > highestInfluence){
@@ -755,7 +780,7 @@ public strictfp class RobotPlayer {
 		Direction anti=antiGroupingMovement();
 		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
 			rc.move(rc.getLocation().directionTo(targetDestination));
-		else if (rc.canMove(anti))//Run antigrouping stuff
+		else if (rc.canMove(anti))// Run antigrouping stuff
 			rc.move(anti);
 		else {
 			doRandomMove();
@@ -860,17 +885,10 @@ public strictfp class RobotPlayer {
 // Enlightenment Center Methods Below
 
 	static void runStageOne() throws GameActionException {
-		if (turnCount == 1) {
+		if (rc.canBid(1)) {
 			rc.bid(1);
 		}
 		if (rc.isReady()) {
-			/**
-			 if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
-			 runCorner();
-			 }**/
-			if (createdScouts < 8) {
-				createScouts();//Create a scout
-			}
 			for (int i = 0; i < 2; i++) {
 				if (stageOne[0][i] == 0) {
 					int toBuildCode = stageOne[1][i];
@@ -882,46 +900,34 @@ public strictfp class RobotPlayer {
 					}
 				}
 			}
-			if (createdScouts < 8) {
-				createScouts();//Create a scout
+			if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
+				runCorner();
 			} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
 				construct(RobotType.MUCKRAKER, 1);
 				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+
 			}
 		}
+
+
 	}
 
-	/**
-	 * Uses variable createdScouts
-	 * See strategy doc for what 0-7 encodes for
-	 * and what flag 2-9 encodes
-	 */
-	public static void createScouts() throws GameActionException{
-		for(Direction dir : directionPriorityForScouts[createdScouts]){
-			if(rc.canBuildRobot(RobotType.MUCKRAKER,dir,1)) {
-				rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
-				System.out.println("CREATING SCOUNT N=" + createdScouts);
-				int[] flag=decodeFlag(rc.getID());
-				rc.setFlag(encodeFlag(flag[0],flag[1],flag[2],createdScouts+2));//Encode information for scouts
-				createdScouts++;
-				unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());//Important
-			}
-		}
-	}
 	/**
 	 * Either Builds or Bids depending on buildUnits. Run by EC from 555-1500
 	 * 
 	 * @throws GameActionException
 	 */
 	static void runStageTwo() throws GameActionException {
-		smartBid();
+
+		if (rc.canBid(1)) {
+			rc.bid(1);
+		}
 
 		if (rc.isReady()) {
-			/**if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
+			if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
 				runCorner();
-			}**/
-
+			}
 			for (int i = 0; i < 3; i++) {
 				if (stageTwo[0][i] == 0) {
 					int toBuildCode = stageTwo[1][i];
@@ -947,14 +953,19 @@ public strictfp class RobotPlayer {
 					return;
 				}
 			}
-			if(canConstruct(RobotType.MUCKRAKER,1))
-				construct(RobotType.MUCKRAKER,1);
+			if (canConstruct(RobotType.MUCKRAKER, 1))
+				construct(RobotType.MUCKRAKER, 1);
 		}
 
 	}
 
 	static void runStageThree() throws GameActionException {
-		smartBid();
+		if (rc.getInfluence() > 250) {
+			int random = 5 + (int)(Math.random() * 5);
+			rc.bid(random);
+		} else if (rc.canBid(1)) {
+			rc.bid(1);
+		}
 
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
@@ -967,10 +978,25 @@ public strictfp class RobotPlayer {
 		if (canConstruct(RobotType.MUCKRAKER, 1)) {
 			construct(RobotType.MUCKRAKER, 1);
 		}
+
+
+		/**
+		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
+		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
+		 * if(canConstruct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10) {
+		 * construct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10); }
+		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
+		 * }
+		 */
 	}
 
 	static void runStageFour() throws GameActionException {
-		smartBid();
+		if (rc.getInfluence() > 100) {
+			int random = 5 + (int) (Math.random() * 5);
+			rc.bid(random);
+		} else if (rc.canBid(1)) {
+			rc.bid(1);
+		}
 
 		if (rc.isReady()) {
 			if (stageFourMode) {
@@ -985,6 +1011,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
+
 		if (canConstruct(RobotType.MUCKRAKER, 1))
 			construct(RobotType.MUCKRAKER, 1);
 
@@ -993,17 +1020,23 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageFive() throws GameActionException {
-		smartBid();
-			/**
+		/**
+		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
+		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
+		 * if(canConstruct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10) {
+		 * construct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10); }
+		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
+		 * }
+		 */
 		if (rc.getInfluence() > 125) {
 			int random = 15 + (int) (Math.random() * 10);
 			rc.bid(random);
 		} else if (rc.canBid(15)) {
-			int random = 10 + (int)(Math.random() * 5);
+			int random = (int) (Math.random() * 5);
 			rc.bid(random);
 		} else if(rc.canBid(1)){
 			rc.bid(1);
-		}**/
+		}
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
 			if (rc.getInfluence() >= neutralInfluence) {
@@ -1037,8 +1070,7 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageSix() throws GameActionException {
-		smartBid();
-		/**if (rc.getInfluence() > 250) {
+		if (rc.getInfluence() > 250) {
 			int random = 25 + (int)(Math.random() * 25);
 			rc.bid(random);
 		} else if (rc.canBid(50)) {
@@ -1046,7 +1078,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		}else if(rc.canBid(1)){
 			rc.bid(1);
-		}**/
+		}
 
 		if (rc.isReady()) {
 			if (stageSixMode) {
@@ -1072,8 +1104,7 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageSeven() throws GameActionException {
-		smartBid();
-		/**if (rc.getInfluence() > 400) {
+		if (rc.getInfluence() > 400) {
 			int random = 50 + (int)((Math.random()) * 50); //Between 50 and 100
 			rc.bid(random);
 		} else if (rc.canBid(50)) {
@@ -1081,7 +1112,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		}else if(rc.canBid(1)){
 			rc.bid(1);
-		}**/
+		}
 
 
 		if (rc.isReady()) {
@@ -1120,44 +1151,15 @@ public strictfp class RobotPlayer {
 
 	}
 
-
-
-	static void smartBid() throws GameActionException {
-		int currentVotes = rc.getTeamVotes();
-		Boolean voteGained = currentVotes > lastRoundVotes;
-		if (rc.canBid(lastRoundBid) && voteGained) {
-			if (roundsPlateaued == 15) {
-				lastRoundBid /= 2;
-				roundsPlateaued = 0;
-			} else {
-				rc.bid(lastRoundBid);
-				roundsPlateaued++;
-			}
-		} else if (turnCount < 400) {
-			if (rc.canBid(lastRoundBid + 1)) {
-				rc.bid(lastRoundBid + 1);
-				lastRoundBid += 1;
-			}
-		} else {
-			if (rc.canBid(lastRoundBid + (int) (0.2 * Math.sqrt(turnCount)))) {
-				rc.bid(lastRoundBid + (int) (0.2 * Math.sqrt(turnCount)));
-				lastRoundBid += (int) (0.2 * Math.sqrt(turnCount));
-			}
-		}
-		lastRoundVotes = currentVotes;
-	}
 	static void runCapturedStage() throws GameActionException {
-		//smartBid();
-		if(turnCount>=15){
-			if (rc.getInfluence() > 400) {
-				int random = 50 + (int) ((Math.random()) * 50); //Between 50 and 100
-				rc.bid(random);
-			} else if (rc.canBid(10)) {
-				int random = 5 + (int) ((Math.random() + .1) * 5); //Between 5 and 10
-				rc.bid(random);
-			}else if(rc.canBid(1)){
-				rc.bid(1);
-			}
+		if (rc.getInfluence() > 400) {
+			int random = 50 + (int) ((Math.random()) * 50); //Between 50 and 100
+			rc.bid(random);
+		} else if (rc.canBid(10)) {
+			int random = 5 + (int) ((Math.random() + .1) * 5); //Between 5 and 10
+			rc.bid(random);
+		}else if(rc.canBid(1)){
+			rc.bid(1);
 		}
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
@@ -1571,152 +1573,193 @@ public strictfp class RobotPlayer {
 		switch (cornerMission) {
 		case 20:// Go to top left
 			if (rc.isReady()) {
-				navigateTo(currentLoc.translate(-1,1));
-				// Check if we're at the corner
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.NORTH).add(Direction.NORTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.WEST).add(Direction.WEST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.NORTHEAST)) {
-						rc.move(Direction.NORTHEAST);
-						return;
-					} else if (rc.canMove(Direction.EAST)) {
-						rc.move(Direction.EAST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.SOUTHWEST)) {
-						rc.move(Direction.SOUTHWEST);
-						return;
-					} else if (rc.canMove(Direction.SOUTH)) {
-						rc.move(Direction.SOUTH);
-						return;
-					}
-				} else {
-					isAtCorner = true;
-					RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
-					for(RobotInfo robot : nearby)
-						if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
-							isAtCorner = false;
-							cornerMission=0;
+				if (rc.canMove(Direction.NORTHWEST)) {
+					rc.move(Direction.NORTHWEST);
+					return;
+				} else if (rc.canMove(Direction.NORTH)) {
+					rc.move(Direction.NORTH);
+					return;
+				} else if (rc.canMove(Direction.WEST)) {
+					rc.move(Direction.WEST);
+					return;
+				} else {// Check if we're at the corner
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.NORTH);
+					tempLoc = tempLoc.add(Direction.NORTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.NORTHEAST)) {
+							rc.move(Direction.NORTHEAST);
+							return;
+						} else if (rc.canMove(Direction.EAST)) {
+							rc.move(Direction.EAST);
+							return;
 						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.SOUTHWEST)) {
+							rc.move(Direction.SOUTHWEST);
+							return;
+						} else if (rc.canMove(Direction.SOUTH)) {
+							rc.move(Direction.SOUTH);
+							return;
+						}
+					} else {
+						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
 
-					//System.out.println("At Northwest Corner");
+						//System.out.println("At Northwest Corner");
+					}
 				}
 			}
 			break;
 		case 21: // Go to top right
 			if (rc.isReady()) {
-				navigateTo(currentLoc.translate(1,1));
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.NORTH);
-				tempLoc = tempLoc.add(Direction.NORTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.EAST);
-				tempLoc2 = tempLoc2.add(Direction.EAST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.NORTHWEST)) {
-						rc.move(Direction.NORTHWEST);
-						return;
-					} else if (rc.canMove(Direction.WEST)) {
-						rc.move(Direction.WEST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.SOUTHEAST)) {
-						rc.move(Direction.SOUTHEAST);
-						return;
-					} else if (rc.canMove(Direction.SOUTH)) {
-						rc.move(Direction.SOUTH);
-						return;
-					}
+				if (rc.canMove(Direction.NORTHEAST)) {
+					rc.move(Direction.NORTHEAST);
+					return;
+				} else if (rc.canMove(Direction.NORTH)) {
+					rc.move(Direction.NORTH);
+					return;
+				} else if (rc.canMove(Direction.EAST)) {
+					rc.move(Direction.EAST);
+					return;
 				} else {
-					isAtCorner = true;
-					RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
-					for(RobotInfo robot : nearby)
-						if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
-							isAtCorner = false;
-							cornerMission=0;
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.NORTH);
+					tempLoc = tempLoc.add(Direction.NORTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.NORTHWEST)) {
+							rc.move(Direction.NORTHWEST);
+							return;
+						} else if (rc.canMove(Direction.WEST)) {
+							rc.move(Direction.WEST);
+							return;
 						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.SOUTHEAST)) {
+							rc.move(Direction.SOUTHEAST);
+							return;
+						} else if (rc.canMove(Direction.SOUTH)) {
+							rc.move(Direction.SOUTH);
+							return;
+						}
+					} else {
+						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
 
-					//System.out.println("At Northeast Corner");
+						//System.out.println("At Northeast Corner");
+					}
 				}
 			}
 			break;
 		case 22: // Go to bottom right
 			if (rc.isReady()) {
-				navigateTo(currentLoc.translate(1,-1));
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.EAST);
-				tempLoc2 = tempLoc2.add(Direction.EAST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.SOUTHWEST)) {
-						rc.move(Direction.SOUTHWEST);
-						return;
-					} else if (rc.canMove(Direction.WEST)) {
-						rc.move(Direction.WEST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.NORTHEAST)) {
-						rc.move(Direction.NORTHEAST);
-						return;
-					} else if (rc.canMove(Direction.NORTH)) {
-						rc.move(Direction.NORTH);
-						return;
-					}
+				if (rc.canMove(Direction.SOUTHEAST)) {
+					rc.move(Direction.SOUTHEAST);
+					return;
+				} else if (rc.canMove(Direction.SOUTH)) {
+					rc.move(Direction.SOUTH);
+					return;
+				} else if (rc.canMove(Direction.EAST)) {
+					rc.move(Direction.EAST);
+					return;
 				} else {
-					isAtCorner = true;
-					RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
-					for(RobotInfo robot : nearby)
-						if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
-							isAtCorner = false;
-							cornerMission=0;
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					tempLoc2 = tempLoc2.add(Direction.EAST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.SOUTHWEST)) {
+							rc.move(Direction.SOUTHWEST);
+							return;
+						} else if (rc.canMove(Direction.WEST)) {
+							rc.move(Direction.WEST);
+							return;
 						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.NORTHEAST)) {
+							rc.move(Direction.NORTHEAST);
+							return;
+						} else if (rc.canMove(Direction.NORTH)) {
+							rc.move(Direction.NORTH);
+							return;
+						}
+					} else {
+						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
 
-					//System.out.println("At Southeast Corner");
+						//System.out.println("At Southeast Corner");
+					}
 				}
 			}
 			break;
 		case 23: // Go to bottom right
 			if (rc.isReady()) {
-				navigateTo(currentLoc.translate(-1,-1));
-				MapLocation tempLoc = currentLoc;
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				tempLoc = tempLoc.add(Direction.SOUTH);
-				MapLocation tempLoc2 = currentLoc;
-				tempLoc2 = tempLoc2.add(Direction.WEST);
-				tempLoc2 = tempLoc2.add(Direction.WEST);
-				if (rc.canSenseLocation(tempLoc)) {
-					if (rc.canMove(Direction.SOUTHEAST)) {
-						rc.move(Direction.SOUTHEAST);
-						return;
-					} else if (rc.canMove(Direction.EAST)) {
-						rc.move(Direction.EAST);
-						return;
-					}
-				} else if (rc.canSenseLocation(tempLoc2)) {
-					if (rc.canMove(Direction.NORTHWEST)) {
-						rc.move(Direction.NORTHWEST);
-						return;
-					} else if (rc.canMove(Direction.NORTH)) {
-						rc.move(Direction.NORTH);
-						return;
-					}
+				if (rc.canMove(Direction.SOUTHWEST)) {
+					rc.move(Direction.SOUTHWEST);
+					return;
+				} else if (rc.canMove(Direction.SOUTH)) {
+					rc.move(Direction.SOUTH);
+					return;
+				} else if (rc.canMove(Direction.WEST)) {
+					rc.move(Direction.WEST);
+					return;
 				} else {
-					isAtCorner = true;
-					RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
-					for(RobotInfo robot : nearby)
-						if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
-							isAtCorner = false;
-							cornerMission=0;
+					MapLocation tempLoc = currentLoc;
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					tempLoc = tempLoc.add(Direction.SOUTH);
+					MapLocation tempLoc2 = currentLoc;
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					tempLoc2 = tempLoc2.add(Direction.WEST);
+					if (rc.canSenseLocation(tempLoc)) {
+						if (rc.canMove(Direction.SOUTHEAST)) {
+							rc.move(Direction.SOUTHEAST);
+							return;
+						} else if (rc.canMove(Direction.EAST)) {
+							rc.move(Direction.EAST);
+							return;
 						}
+					} else if (rc.canSenseLocation(tempLoc2)) {
+						if (rc.canMove(Direction.NORTHWEST)) {
+							rc.move(Direction.NORTHWEST);
+							return;
+						} else if (rc.canMove(Direction.NORTH)) {
+							rc.move(Direction.NORTH);
+							return;
+						}
+					} else {
+						isAtCorner = true;
+						RobotInfo[] nearby=rc.senseNearbyRobots(18,rc.getTeam());
+						for(RobotInfo robot : nearby)
+							if(robot.getType().equals(RobotType.ENLIGHTENMENT_CENTER)) {
+								isAtCorner = false;
+								cornerMission=0;
+							}
 
-					//System.out.println("At Southwest Corner");
+						//System.out.println("At Southwest Corner");
+					}
 				}
 			}
 			break;
@@ -1762,13 +1805,12 @@ public strictfp class RobotPlayer {
 		}
 		for (int i = 0; i < makeCornerRunner.length; i++) {
 			if (makeCornerRunner[i]) {
-				for (Direction dir : directionPriorityForCorner[i]) {
+				for (Direction dir : directions) {
 					if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
 						rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
 						//System.out.println("Built CornerRunner");
 						makeCornerRunner[i] = false;
-						int[] flag=decodeFlag(rc.getFlag(rc.getID()));
-						rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], i + 20));
+						rc.setFlag(encodeFlag(0, 0, 0, i + 20));
 						cornerRunnerIDs[i] = rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID();
 						unitIDs.add(rc.senseRobotAtLocation(rc.getLocation().add(dir)).getID());
 						break;
@@ -1819,10 +1861,6 @@ public strictfp class RobotPlayer {
 			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 			runCorner = false;
 			closestCorner = closestCorner(mapCorners);
-			makeCornerRunner[0]=false;
-			makeCornerRunner[1]=false;
-			makeCornerRunner[2]=false;
-			makeCornerRunner[3]=false;
 			rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], closestCorner + 30));
 		}
 	}
@@ -2034,109 +2072,5 @@ public strictfp class RobotPlayer {
 				rc.move(dir);
 		}
 
-	}
-
-	/**
-	 * Optimized version of rc.move(rc.currentLocation().directionTo(loc))
-	 *
-	 * To be used by politicians storming neutral ECs and perhaps by muckrakers trying to go to corners
-	 *
-	 * If moving to a diagonal location, move whichever spot IN DIRECTION OF TARGET has highest passability
-	 * If moving to straight target in straight line, try to move in that direction
-	 *
-	 * returns true if made a move, false if didn't
-	 *
-	 */
-	static boolean navigateTo(MapLocation loc) throws GameActionException{
-		if(!rc.isReady())
-			return false;
-		MapLocation currentLoc=rc.getLocation();
-		int xDif = loc.x - currentLoc.x, yDif = loc.y - currentLoc.y;
-
-		if(xDif==0 && yDif==0)
-			return false;
-		//Scale down to -1,0,1 in each direction
-		if(xDif>0)
-			xDif=1;
-		else if (xDif<0)
-			xDif=-1;
-		if(yDif>0)
-			yDif=1;
-		else if(yDif<0)
-			yDif=-1;
-
-		double xPass=0,yPass=0, diagonalPass=0;
-		if(rc.canSenseLocation(currentLoc.translate(xDif,0))&&!rc.isLocationOccupied(currentLoc.translate(xDif,0)))
-			xPass = rc.sensePassability(currentLoc.translate(xDif,0));
-		if(rc.canSenseLocation(currentLoc.translate(0,yDif))&&!rc.isLocationOccupied(currentLoc.translate(0,yDif)))
-			yPass = rc.sensePassability(currentLoc.translate(0,yDif));
-		MapLocation xyTranslated=currentLoc.translate(xDif,yDif);
-
-		//If we want to move diagonally, see which way that's is best
-		if(xDif != 0 && yDif !=0){
-			if(rc.canSenseLocation(xyTranslated)&&!rc.isLocationOccupied(xyTranslated))
-				diagonalPass = rc.sensePassability(xyTranslated);
-			if(diagonalPass>=xPass && diagonalPass >= yPass && rc.canMove(currentLoc.directionTo(xyTranslated))){
-				rc.move(currentLoc.directionTo(xyTranslated));
-				return true;
-			}
-			if(xPass >= yPass && rc.canMove(currentLoc.directionTo(currentLoc.translate(xDif,0)))){
-				rc.move(currentLoc.directionTo(currentLoc.translate(xDif,0)));
-				return true;
-			}
-			if(rc.canMove(currentLoc.directionTo(currentLoc.translate(0,yDif)))){
-				rc.move(currentLoc.directionTo(currentLoc.translate(0,yDif)));
-				return true;
-			}
-			return false;
-		}
-
-		//This means the target is lateral. Attempt to move that way
-		if(rc.canMove(currentLoc.directionTo(xyTranslated))){
-			rc.move(currentLoc.directionTo(xyTranslated));
-			return true;
-		}
-		return false;
-	}
-
-
-	/** Uses muckrakerMission, number 0 - 7
-	 *
-	 * @throws GameActionException
-	 */
-	static void searchOtherECs() throws GameActionException
-	{
-		System.out.println("I HAVE MISSION : " + muckrakerMission);
-		if(!(muckrakerMission>=2 && muckrakerMission<=9))
-			return;
-		Direction[][] movements={
-				{Direction.NORTHWEST, Direction.NORTH, Direction.NORTHEAST},
-				{Direction.NORTH, Direction.NORTHEAST, Direction.EAST},
-				{Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST},
-				{Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH},
-				{Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST},
-				{Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST},
-				{Direction.SOUTHWEST,Direction.SOUTH,Direction.WEST},
-				{Direction.WEST, Direction.NORTHWEST, Direction.NORTH}
-		};
-		ArrayList<Direction> canMove = new ArrayList<Direction>();
-		for(Direction a : movements[muckrakerMission-2]){
-			if(rc.canMove(a))
-				canMove.add(a);
-
-		}
-		if(canMove.size()>0){
-			int random=(int) (Math.random() * canMove.size());
-			System.out.println("CHOOSING FROM: " + canMove.size() + " moves");
-			rc.move(canMove.get(random));
-			turnsWaiting=0;
-		}else{
-			turnsWaiting++;
-			if(turnsWaiting>3) {
-				muckrakerMission=0;//Reset ourselves
-				doRandomMove();
-			}
-			Clock.yield();
-		}
 	}
 }
