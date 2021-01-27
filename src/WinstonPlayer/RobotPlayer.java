@@ -705,12 +705,12 @@ public strictfp class RobotPlayer {
 		Direction anti = antiGroupingMovement();
 		if (haveDestination && navigateTo(targetDestination))
 			return;
-		else if (rc.canMove(anti))// Run antigrouping stuff
+		else if (rc.canMove(anti)) {// Run antigrouping stuff
 			rc.move(anti);
 			return;
-		else {
-			doRandomMove();
 		}
+		doRandomMove();
+
 
 	}
 
