@@ -409,7 +409,7 @@ public strictfp class RobotPlayer {
 		}
 
 		// Attempt to attack a nearby unit
-		RobotInfo[] attackable = rc.senseNearbyRobots(sensorRadius, rc.getTeam().opponent());
+		RobotInfo[] attackable = rc.senseNearbyRobots(rc.getType().actionRadiusSquared, rc.getTeam().opponent());
 		int distTo;
 		if (attackable.length > 0) {
 			for (RobotInfo robot : attackable) {
