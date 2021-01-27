@@ -16,6 +16,8 @@ public strictfp class RobotPlayer {
 
 	static int turnCount;
 
+	static int lastRoundBid = 1;
+	static int lastRoundVotes = 0;
 	/**
 	 * stores schema of the communications and how much to shift each n-1 parameter
 	 */
@@ -635,7 +637,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 			if (rc.isReady()) {
-				
+
 				//Attempt to expose slanderer. Prioritize highest influence
 				int highestInfluence=0;
 				int targetID=rc.getID();
@@ -885,9 +887,16 @@ public strictfp class RobotPlayer {
 // Enlightenment Center Methods Below
 
 	static void runStageOne() throws GameActionException {
-		if (rc.canBid(1)) {
+		if(turnCount == 1)
+		{
 			rc.bid(1);
 		}
+		else {
+			smartBid();
+		}
+		/**if (rc.canBid(1)) {
+			rc.bid(1);
+		}**/
 		if (rc.isReady()) {
 			for (int i = 0; i < 2; i++) {
 				if (stageOne[0][i] == 0) {
@@ -919,10 +928,11 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void runStageTwo() throws GameActionException {
-
+		smartBid();
+		/**
 		if (rc.canBid(1)) {
 			rc.bid(1);
-		}
+		}**/
 
 		if (rc.isReady()) {
 			if (makeCornerRunner[0] || makeCornerRunner[1] || makeCornerRunner[2] || makeCornerRunner[3]) {
@@ -960,12 +970,13 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageThree() throws GameActionException {
-		if (rc.getInfluence() > 250) {
+		smartBid();
+		/**if (rc.getInfluence() > 250) {
 			int random = 5 + (int)(Math.random() * 5);
 			rc.bid(random);
 		} else if (rc.canBid(1)) {
 			rc.bid(1);
-		}
+		}**/
 
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
@@ -978,25 +989,16 @@ public strictfp class RobotPlayer {
 		if (canConstruct(RobotType.MUCKRAKER, 1)) {
 			construct(RobotType.MUCKRAKER, 1);
 		}
-
-
-		/**
-		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
-		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
-		 * if(canConstruct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10) {
-		 * construct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10); }
-		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
-		 * }
-		 */
 	}
 
 	static void runStageFour() throws GameActionException {
-		if (rc.getInfluence() > 100) {
+		smartBid();
+		/**if (rc.getInfluence() > 100) {
 			int random = 5 + (int) (Math.random() * 5);
 			rc.bid(random);
 		} else if (rc.canBid(1)) {
 			rc.bid(1);
-		}
+		}**/
 
 		if (rc.isReady()) {
 			if (stageFourMode) {
@@ -1020,14 +1022,8 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageFive() throws GameActionException {
+		smartBid();
 		/**
-		 * if neutral enlightenment center int neutralEnlightenmentCenterValue = ---;
-		 * if(rc.getInfluence() >= neutralEnlightenmentCenterValue+10) {
-		 * if(canConstruct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10) {
-		 * construct(RobotType.POLITICIAN, neutralEnlightenmentCenterValue+10); }
-		 * if(canConstruct(RobotType.MUCKRAKER,1) { construct(RobotType.MUCKRAKER, 1); }
-		 * }
-		 */
 		if (rc.getInfluence() > 125) {
 			int random = 15 + (int) (Math.random() * 10);
 			rc.bid(random);
@@ -1036,7 +1032,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		} else if(rc.canBid(1)){
 			rc.bid(1);
-		}
+		}**/
 		if (neutralECs.size() > nECpoliticians) {
 			int neutralInfluence = (neutralECInf.get(nECpoliticians) % 40 + 1) * 50 + 11;
 			if (rc.getInfluence() >= neutralInfluence) {
@@ -1070,7 +1066,8 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageSix() throws GameActionException {
-		if (rc.getInfluence() > 250) {
+		smartBid();
+		/**if (rc.getInfluence() > 250) {
 			int random = 25 + (int)(Math.random() * 25);
 			rc.bid(random);
 		} else if (rc.canBid(50)) {
@@ -1078,7 +1075,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		}else if(rc.canBid(1)){
 			rc.bid(1);
-		}
+		}**/
 
 		if (rc.isReady()) {
 			if (stageSixMode) {
@@ -1104,7 +1101,8 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runStageSeven() throws GameActionException {
-		if (rc.getInfluence() > 400) {
+		smartBid();
+		/**if (rc.getInfluence() > 400) {
 			int random = 50 + (int)((Math.random()) * 50); //Between 50 and 100
 			rc.bid(random);
 		} else if (rc.canBid(50)) {
@@ -1112,7 +1110,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		}else if(rc.canBid(1)){
 			rc.bid(1);
-		}
+		}**/
 
 
 		if (rc.isReady()) {
@@ -1151,8 +1149,35 @@ public strictfp class RobotPlayer {
 
 	}
 
+	static void smartBid() throws GameActionException
+	{
+		int currentVotes = rc.getTeamVotes();
+		Boolean voteGained = currentVotes > lastRoundVotes;
+		if(rc.canBid(lastRoundBid) && voteGained)
+		{
+			System.out.println("Same Bid");
+			rc.bid(lastRoundBid);
+			lastRoundBid--;
+		}
+		else
+		{
+			for(int i = 10 + turnCount/100; i > -lastRoundBid/2; i--)
+			{
+				if(rc.canBid(lastRoundBid +i))
+				{
+					rc.bid(lastRoundBid + i);
+					lastRoundBid += i;
+					break;
+				}
+			}
+		}
+		System.out.println("last round votes : " + lastRoundVotes);
+		System.out.println("current votes " + currentVotes);
+		lastRoundVotes = currentVotes;
+	}
 	static void runCapturedStage() throws GameActionException {
-		if (rc.getInfluence() > 400) {
+		smartBid();
+		/**if (rc.getInfluence() > 400) {
 			int random = 50 + (int) ((Math.random()) * 50); //Between 50 and 100
 			rc.bid(random);
 		} else if (rc.canBid(10)) {
@@ -1160,7 +1185,7 @@ public strictfp class RobotPlayer {
 			rc.bid(random);
 		}else if(rc.canBid(1)){
 			rc.bid(1);
-		}
+		}**/
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
 				int x = nearestBreakpointv3();
