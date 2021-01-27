@@ -1045,7 +1045,7 @@ public strictfp class RobotPlayer {
 
 	static void smartBid() throws GameActionException {
 		int currentVotes = rc.getTeamVotes();
-		Boolean voteGained = currentVotes > lastRoundVotes;
+		boolean voteGained = currentVotes > lastRoundVotes;
 		if (rc.canBid(lastRoundBid) && voteGained) {
 			if (roundsPlateaued == 15) {
 				lastRoundBid /= 2;
