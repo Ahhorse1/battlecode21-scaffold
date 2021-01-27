@@ -463,7 +463,7 @@ public strictfp class RobotPlayer {
 			if (rc.canSenseLocation(latticeDestination)) {
 				RobotInfo robot = rc.senseRobotAtLocation(latticeDestination);
 				if (robot != null) {
-					if (robot.getType().equals(RobotType.SLANDERER) && decodeFlag(rc.getFlag(robot.ID))[3] == 1) {
+					if (robot.getType().equals(RobotType.POLITICIAN) && decodeFlag(rc.getFlag(robot.ID))[3] == 1) {
 						System.out.println("Updating Destination");
 						updateDestination();
 					}
