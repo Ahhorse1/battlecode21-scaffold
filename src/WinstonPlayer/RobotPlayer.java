@@ -6,7 +6,8 @@ import java.util.Arrays;
 
 public strictfp class RobotPlayer {
 	static RobotController rc;
-
+	static boolean haveDestination=false;
+	static MapLocation targetDest=null;
 	static final RobotType[] spawnableRobot = { RobotType.POLITICIAN, RobotType.SLANDERER, RobotType.MUCKRAKER, };
 
 	static final Direction[] directions = { Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST,
@@ -48,7 +49,8 @@ public strictfp class RobotPlayer {
 	 */
 	static MapLocation ecLoc;
 	static int enlightenmentCenterID;
-
+	static int[] doneAt={100,150,200,250,300,350,400};
+	static int stormPoint;
 	static int lastRoundBid = 1;
 	static int lastRoundVotes = 0;
 	static int roundsPlateaued = 0;
@@ -252,7 +254,7 @@ public strictfp class RobotPlayer {
 			rc.setFlag(encodeFlag(2, neutralECs.get(0)));
 		} else if (enemyECs.size() > 0 && turnCount % 2 == 1) {
 			rc.setFlag(encodeFlag(1, enemyECs.get(0)));
-		} else if (needsSupport && turnCount % 3 == 0) {
+		} else if (needsSupport && turnCount % 2 == 1) {
 			rc.setFlag(supportFlag);
 		}
 	}
@@ -286,10 +288,12 @@ public strictfp class RobotPlayer {
 		seeWhatsUp();
 		if (turnCount <= 20) {
 			if (rc.isReady()) {
-				int x = nearestBreakpointv2();
-				if (canConstruct(RobotType.SLANDERER, x)) {
-					construct(RobotType.SLANDERER, x);
-					return;
+				if (createdScouts < 8) {
+					createScouts();// Create a scout
+				} else if (canConstruct(RobotType.SLANDERER, 21)) {
+					construct(RobotType.SLANDERER, 21);
+					int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 				}
 			}
 		}
@@ -376,8 +380,9 @@ public strictfp class RobotPlayer {
 		if (rc.isReady()) {
 			if (politicianMission >= 10 && politicianMission <= 13)
 				surroundSlanderers();
-		} else
-			return; // Everything following this is action based
+		}
+		if(!rc.isReady())
+			return;
 
 		// Attempt to storm neutral ECs
 		if (neutralECs.size() > 0) {
@@ -512,26 +517,28 @@ public strictfp class RobotPlayer {
 	}
 
 	static void runMuckraker() throws GameActionException {
+
 		// Define some constants
 		rc.setFlag(0);
+
 		int senseRadius = RobotType.MUCKRAKER.detectionRadiusSquared;
 		int actionRadius = RobotType.MUCKRAKER.actionRadiusSquared;
 		Team enemy = rc.getTeam().opponent();
 
 		// First turn stuffs
 		if (turnCount == 1) {
+			stormPoint=(int)(Math.random()*7);
+			System.out.println("MY STORM COUNT IS: " + stormPoint);
 			firstTurn();// Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			if (ECFlag[3] >= 2 && ECFlag[3] <= 9) {
-				//System.out.println("I HAVE MISSION: " + ECFlag[3]);
+				System.out.println("I HAVE MISSION: " + ECFlag[3]);
 				muckrakerMission = ECFlag[3];// Get our mission; see strategy doc for meaning. It'll be between 2 and 9
+				stormPoint=6;
 			}
 		}
 
-		MapLocation targetDestination = rc.getLocation();
-		boolean haveDestination = false;
-
-		if (turnCount == 200) {
+		if (turnCount == doneAt[stormPoint]) {
 			swarmMuckraker = true;
 			rc.setFlag(encodeFlag(15, 0, 0, 0));
 		}
@@ -628,7 +635,7 @@ public strictfp class RobotPlayer {
 				neutralECs.remove(loc);
 				break;
 			case 12: // A bro needs help (there's an enemy slanderer storm somewhere)
-				targetDestination = loc;
+				targetDest = loc;
 				haveDestination = true;
 				break;
 			}
@@ -645,7 +652,7 @@ public strictfp class RobotPlayer {
 				else if (robot.getTeam().equals(rc.getTeam()) && robot.getType().equals(RobotType.SLANDERER)) {
 					int[] flag = decodeFlag(rc.getFlag(robot.getID()));
 					if (flag[0] == 12) {
-						targetDestination = getMapLocation(flag[1], flag[2]);
+						targetDest = getMapLocation(flag[1], flag[2]);
 						haveDestination = true;
 					}
 				}
@@ -698,9 +705,10 @@ public strictfp class RobotPlayer {
 
 		// Move somewhere based on destination, then antigrouping, then randomly
 		Direction anti = antiGroupingMovement();
-		if (haveDestination && rc.canMove(rc.getLocation().directionTo(targetDestination)))
-			rc.move(rc.getLocation().directionTo(targetDestination));
-		else if (rc.canMove(anti))// Run antigrouping stuff
+		if (haveDestination && navigateTo(targetDest)) {
+			System.out.println("NAVIGATED TO:  " + targetDest.x + "  and " + targetDest.y);
+			return;
+		}else if (rc.canMove(anti))// Run antigrouping stuff
 			rc.move(anti);
 		else {
 			doRandomMove();
@@ -822,10 +830,12 @@ public strictfp class RobotPlayer {
 			}
 			if (createdScouts < 8) {
 				createScouts();// Create a scout
-			} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
-				construct(RobotType.MUCKRAKER, 1);
+			} else{
 				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+			}
+			if (canConstruct(RobotType.MUCKRAKER, 1)) {
+				construct(RobotType.MUCKRAKER, 1);
 			}
 		}
 	}
@@ -835,6 +845,11 @@ public strictfp class RobotPlayer {
 	 * what flag 2-9 encodes
 	 */
 	public static void createScouts() throws GameActionException {
+		if(createdScouts>=8){
+			int[] flag=decodeFlag(rc.getID());
+			rc.setFlag(encodeFlag(flag[0], flag[1], flag[2],0));
+			return;
+		}
 		for (Direction dir : directionPriorityForScouts[createdScouts]) {
 			if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
 				rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
@@ -881,11 +896,16 @@ public strictfp class RobotPlayer {
 					stageTwoModes[1] = false;
 					return;
 				}
-			} else if (createdScouts < 8) {
+			}
+			if (createdScouts < 8) {
 				createScouts();// Create a scout
 				stageTwoModes[0] = true;
 				return;
-			} else if (canConstruct(RobotType.MUCKRAKER, 1)) {
+			} else{
+				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+			}
+			if (canConstruct(RobotType.MUCKRAKER, 1)) {
 				construct(RobotType.MUCKRAKER, 1);
 				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
 				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
@@ -908,7 +928,10 @@ public strictfp class RobotPlayer {
 		}
 		if (canConstruct(RobotType.MUCKRAKER, 1)) {
 			construct(RobotType.MUCKRAKER, 1);
+			int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+			rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 		}
+
 	}
 
 	static void runStageFour() throws GameActionException {
@@ -932,6 +955,8 @@ public strictfp class RobotPlayer {
 				if (canConstruct(RobotType.MUCKRAKER, 1)) {
 					construct(RobotType.MUCKRAKER, 1);
 					stageFourModes[0] = true;
+					int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 				}
 			}
 
@@ -969,6 +994,8 @@ public strictfp class RobotPlayer {
 				if (canConstruct(RobotType.MUCKRAKER, 1)) {
 					construct(RobotType.MUCKRAKER, 1);
 					stageFiveModes[0] = true;
+					int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 				}
 			}
 		}
@@ -1001,6 +1028,8 @@ public strictfp class RobotPlayer {
 			}
 			if (canConstruct(RobotType.MUCKRAKER, 1)) {
 				construct(RobotType.MUCKRAKER, 1);
+				int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 			}
 		}
 
@@ -1045,32 +1074,50 @@ public strictfp class RobotPlayer {
 
 	static void smartBid() throws GameActionException {
 		int currentVotes = rc.getTeamVotes();
+		if(currentVotes>750)
+		{
+			return;
+		}
+		int influenceCap = (int)(rc.getInfluence() * 0.25);
 		boolean voteGained = currentVotes > lastRoundVotes;
 		if (rc.canBid(lastRoundBid) && voteGained) {
 			if (roundsPlateaued == 15) {
-				lastRoundBid /= 2;
+				lastRoundBid = (int)(lastRoundBid * 0.75)+1;
 				roundsPlateaued = 0;
+				rc.bid(lastRoundBid);
 			} else {
 				rc.bid(lastRoundBid);
 				roundsPlateaued++;
 			}
-		} else if (turnCount < 400) {
-			if (rc.canBid(lastRoundBid + 1)) {
+		} else if (turnCount < 1000) {
+			if (rc.canBid(lastRoundBid + 1) && lastRoundBid <= influenceCap) {
 				rc.bid(lastRoundBid + 1);
 				lastRoundBid += 1;
 			}
-		} else {
-			if (rc.canBid(lastRoundBid + (int) (0.2 * Math.sqrt(turnCount)))) {
-				rc.bid(lastRoundBid + (int) (0.2 * Math.sqrt(turnCount)));
-				lastRoundBid += (int) (0.2 * Math.sqrt(turnCount));
+			else
+			{
+				rc.bid(influenceCap);
+				lastRoundBid = influenceCap;
+			}
+		} else
+		{
+			int baseECIncome = (int)(0.1 * Math.sqrt(turnCount));
+			if (rc.canBid(lastRoundBid + baseECIncome) && lastRoundBid +baseECIncome < influenceCap) {
+				rc.bid(lastRoundBid + baseECIncome);
+				lastRoundBid += baseECIncome;
+			}
+			else
+			{
+				rc.bid(influenceCap);
+				lastRoundBid = influenceCap;
 			}
 		}
 		lastRoundVotes = currentVotes;
 	}
 
 	static void runCapturedStage() throws GameActionException {
-		// smartBid();
-		if (turnCount >= 15) {
+		smartBid();
+		/**if (turnCount >= 15) {
 			if (rc.getInfluence() > 400) {
 				int random = 50 + (int) ((Math.random()) * 50); // Between 50 and 100
 				rc.bid(random);
@@ -1080,7 +1127,7 @@ public strictfp class RobotPlayer {
 			} else if (rc.canBid(1)) {
 				rc.bid(1);
 			}
-		}
+		}**/
 		if (rc.isReady()) {
 			if (stageSevenModes[0] == 0) {
 				int x = nearestBreakpointv3();
@@ -1088,8 +1135,8 @@ public strictfp class RobotPlayer {
 					construct(RobotType.POLITICIAN, x);
 					stageSevenModes[1] += 1;
 				}
-				if (stageSevenModes[1] >= 10) {
-					stageSevenModes[0] = 1;
+				if (stageSevenModes[1] >= 2) {
+					stageSevenModes[0] = 2;
 					stageSevenModes[1] = 0;
 				}
 			} else if (stageSevenModes[0] == 1) {
@@ -1098,17 +1145,26 @@ public strictfp class RobotPlayer {
 					construct(RobotType.SLANDERER, x);
 					stageSevenModes[1] += 1;
 				}
-				if (stageSevenModes[1] >= 10) {
-					stageSevenModes[0] = 2;
+				if (stageSevenModes[1] >= 2) {
+					stageSevenModes[0] = 0;
 					stageSevenModes[1] = 0;
 				}
 			} else {
+				if (createdScouts < 8) {
+					createScouts();// Create a scout
+				}
+				else{
+					int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
+				}
 				if (canConstruct(RobotType.MUCKRAKER, 1)) {
 					construct(RobotType.MUCKRAKER, 1);
+					int[] flag = decodeFlag(rc.getFlag(rc.getID()));
+					rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], 0));
 					stageSevenModes[1] += 1;
 				}
-				if (stageSevenModes[1] >= 25) {
-					stageSevenModes[0] = 0;
+				if (stageSevenModes[1] >= 5) {
+					stageSevenModes[0] = 1;
 					stageSevenModes[1] = 0;
 				}
 			}
@@ -1856,6 +1912,23 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void searchOtherECs() throws GameActionException {
+		int highestInfluence = 0;
+		int targetID = rc.getID();
+		Team enemy = rc.getTeam().opponent();
+		int actionRadius = RobotType.MUCKRAKER.actionRadiusSquared;
+		RobotInfo[] nearby = rc.senseNearbyRobots(actionRadius, enemy);
+		for (RobotInfo robot : nearby) {
+			if (robot.getType().canBeExposed()) {
+				if (rc.senseRobotAtLocation(robot.getLocation()).getInfluence() > highestInfluence) {
+					highestInfluence = rc.senseRobotAtLocation(robot.getLocation()).getInfluence();
+					targetID = robot.getID();
+				}
+			}
+		}
+		if (highestInfluence > 0) {
+			rc.expose(targetID);
+			return;
+		}
 		if (!(muckrakerMission >= 2 && muckrakerMission <= 9))
 			return;
 		Direction[][] movements = { { Direction.NORTHWEST, Direction.NORTH, Direction.NORTHEAST },
@@ -1884,6 +1957,7 @@ public strictfp class RobotPlayer {
 				doRandomMove();
 			}
 		}
+
 	}
 
 // Muckraker Swarm Method
