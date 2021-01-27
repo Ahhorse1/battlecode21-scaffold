@@ -243,8 +243,8 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		System.out.println("RECOGNIZING: " + neutralECs.size() + " Neutral ECs & " + enemyECs.size()
-				+ " enemy ones and " + friendlyECs.size() + " friendly ones");
+		//System.out.println("RECOGNIZING: " + neutralECs.size() + " Neutral ECs & " + enemyECs.size()
+		//		+ " enemy ones and " + friendlyECs.size() + " friendly ones");
 		// Actually set the flag
 		if (setFlag == true)
 			return;
@@ -363,8 +363,8 @@ public strictfp class RobotPlayer {
 				}
 			}
 		}
-		System.out.println("RECOGNIZING: " + neutralECs.size() + " Neutral ECs & " + enemyECs.size()
-				+ " enemy ones and " + friendlyECs.size() + " friendly ones");
+		//System.out.println("RECOGNIZING: " + neutralECs.size() + " Neutral ECs & " + enemyECs.size()
+		//		+ " enemy ones and " + friendlyECs.size() + " friendly ones");
 
 		if (rc.getFlag(rc.getID()) == 0 && turnCount <= 4) {
 			if (rc.getInfluence() % 10 == 0) {
@@ -384,7 +384,7 @@ public strictfp class RobotPlayer {
 			MapLocation target = neutralECs.get(0);
 			int minDistance = currentLoc.distanceSquaredTo(neutralECs.get(0));
 			for (MapLocation x : neutralECs) {
-				System.out.println("NEUTRAL W/ DISTANCE: " + currentLoc.distanceSquaredTo(x));
+				//System.out.println("NEUTRAL W/ DISTANCE: " + currentLoc.distanceSquaredTo(x));
 				if (currentLoc.distanceSquaredTo(x) < minDistance) {
 					minDistance = currentLoc.distanceSquaredTo(x);
 					target = x;
@@ -470,7 +470,7 @@ public strictfp class RobotPlayer {
 				RobotInfo robot = rc.senseRobotAtLocation(latticeDestination);
 				if (robot != null) {
 					if (robot.getType().equals(RobotType.POLITICIAN) && decodeFlag(rc.getFlag(robot.ID))[3] == 1) {
-						System.out.println("Updating Destination");
+						//System.out.println("Updating Destination");
 						updateDestination();
 					}
 				}
@@ -497,7 +497,7 @@ public strictfp class RobotPlayer {
 					rc.move(currentLoc.directionTo(latticeDestination).rotateRight().rotateRight());
 				}
 			}
-			System.out.println("Destination : (" + latticeDestination.x + "," + latticeDestination.y + ")");
+			//System.out.println("Destination : (" + latticeDestination.x + "," + latticeDestination.y + ")");
 		}
 
 		if (rc.isReady() && !atDestination) {
@@ -523,7 +523,7 @@ public strictfp class RobotPlayer {
 			firstTurn();// Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			if (ECFlag[3] >= 2 && ECFlag[3] <= 9) {
-				System.out.println("I HAVE MISSION: " + ECFlag[3]);
+				//System.out.println("I HAVE MISSION: " + ECFlag[3]);
 				muckrakerMission = ECFlag[3];// Get our mission; see strategy doc for meaning. It'll be between 2 and 9
 			}
 		}
@@ -838,7 +838,7 @@ public strictfp class RobotPlayer {
 		for (Direction dir : directionPriorityForScouts[createdScouts]) {
 			if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
 				rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
-				System.out.println("CREATING SCOUNT N=" + createdScouts);
+				//System.out.println("CREATING SCOUNT N=" + createdScouts);
 				int[] flag = decodeFlag(rc.getID());
 				rc.setFlag(encodeFlag(flag[0], flag[1], flag[2], createdScouts + 2));// Encode information for scouts
 				createdScouts++;
@@ -1464,13 +1464,13 @@ public strictfp class RobotPlayer {
 	static void updateDestination() throws GameActionException {
 		Team myTeam = rc.getTeam();
 		RobotInfo[] nearby2 = rc.senseNearbyRobots(rc.getType().sensorRadiusSquared, myTeam);
-		System.out.println("Nearby Friendly Robots::" + nearby2.length);
+		//System.out.println("Nearby Friendly Robots::" + nearby2.length);
 		for (RobotInfo robot : nearby2) {
-			System.out.println("RobotType ::" + robot.getType());
-			System.out.println("RobotFlag ::" + rc.getFlag(robot.ID));
+			//System.out.println("RobotType ::" + robot.getType());
+			//System.out.println("RobotFlag ::" + rc.getFlag(robot.ID));
 			if (robot.getType().equals(RobotType.POLITICIAN) && decodeFlag(rc.getFlag(robot.ID))[3] == 1) {
 				MapLocation centerPoint = robot.getLocation();
-				System.out.println("Slanderer in Lattice Structure at : (" + centerPoint.x + "," + centerPoint.y + ")");
+				//System.out.println("Slanderer in Lattice Structure at : (" + centerPoint.x + "," + centerPoint.y + ")");
 				if (rc.canSenseLocation(centerPoint.translate(1, 1))) {
 					if (rc.senseRobotAtLocation(centerPoint.translate(1, 1)) == null) {
 						if (centerPoint.translate(1, 1).distanceSquaredTo(ecLoc) > 2) {
@@ -1561,7 +1561,7 @@ public strictfp class RobotPlayer {
 			switch (politicianMission) {
 			case 10:
 				if (closestSlanderer < 9) {
-					System.out.println("Going North");
+					//System.out.println("Going North");
 					if (rc.canMove(Direction.NORTH)) {
 						rc.move(Direction.NORTH);
 					} else if (rc.canMove(Direction.NORTHWEST)) {
@@ -1585,7 +1585,7 @@ public strictfp class RobotPlayer {
 				break;
 			case 11:
 				if (closestSlanderer < 9) {
-					System.out.println("Going East");
+					//System.out.println("Going East");
 					if (rc.canMove(Direction.EAST)) {
 						rc.move(Direction.EAST);
 					} else if (rc.canMove(Direction.NORTHEAST)) {
@@ -1609,7 +1609,7 @@ public strictfp class RobotPlayer {
 				break;
 			case 12:
 				if (closestSlanderer < 9) {
-					System.out.println("Going South");
+					//System.out.println("Going South");
 					if (rc.canMove(Direction.SOUTH)) {
 						rc.move(Direction.SOUTH);
 					} else if (rc.canMove(Direction.SOUTHEAST)) {
@@ -1633,7 +1633,7 @@ public strictfp class RobotPlayer {
 				break;
 			case 13:
 				if (closestSlanderer < 9) {
-					System.out.println("Going West");
+					//System.out.println("Going West");
 					if (rc.canMove(Direction.WEST)) {
 						rc.move(Direction.WEST);
 					} else if (rc.canMove(Direction.NORTHWEST)) {
@@ -1664,7 +1664,7 @@ public strictfp class RobotPlayer {
 	}
 
 	static void rotateAround(Direction slandererDirection) throws GameActionException {
-		System.out.println("Attempting to go Clockwise");
+		//System.out.println("Attempting to go Clockwise");
 		switch (slandererDirection) {
 		case NORTH:
 			politicianMission = 12;
@@ -1856,7 +1856,6 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 	static void searchOtherECs() throws GameActionException {
-		System.out.println("I HAVE MISSION : " + muckrakerMission);
 		if (!(muckrakerMission >= 2 && muckrakerMission <= 9))
 			return;
 		Direction[][] movements = { { Direction.NORTHWEST, Direction.NORTH, Direction.NORTHEAST },
@@ -1875,7 +1874,7 @@ public strictfp class RobotPlayer {
 		}
 		if (canMove.size() > 0) {
 			int random = (int) (Math.random() * canMove.size());
-			System.out.println("CHOOSING FROM: " + canMove.size() + " moves");
+			//System.out.println("CHOOSING FROM: " + canMove.size() + " moves");
 			rc.move(canMove.get(random));
 			turnsWaiting = 0;
 		} else {
