@@ -9,7 +9,6 @@ public strictfp class RobotPlayer {
 	static boolean haveDestination=false;
 	static MapLocation targetDest=null;
 	static final RobotType[] spawnableRobot = { RobotType.POLITICIAN, RobotType.SLANDERER, RobotType.MUCKRAKER, };
-
 	static final Direction[] directions = { Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST,
 			Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST, };
 
@@ -23,22 +22,23 @@ public strictfp class RobotPlayer {
 			{ Direction.SOUTHWEST, Direction.SOUTH, Direction.WEST, Direction.SOUTHEAST, Direction.NORTHWEST,
 					Direction.NORTH, Direction.EAST, Direction.NORTHEAST } };
 	static final Direction[][] directionPriorityForScouts = {
-			{ Direction.NORTHWEST, Direction.NORTH, Direction.WEST, Direction.NORTHEAST, Direction.SOUTHWEST,
-					Direction.EAST, Direction.SOUTH, Direction.SOUTHEAST },
+
 			{ Direction.NORTH, Direction.NORTHWEST, Direction.NORTHEAST, Direction.EAST, Direction.WEST,
 					Direction.SOUTHWEST, Direction.SOUTHEAST, Direction.SOUTH },
-			{ Direction.NORTHEAST, Direction.NORTH, Direction.EAST, Direction.NORTHWEST, Direction.SOUTHEAST,
-					Direction.WEST, Direction.SOUTH, Direction.SOUTHWEST },
-			{ Direction.EAST, Direction.NORTHEAST, Direction.SOUTHEAST, Direction.NORTH, Direction.SOUTH,
-					Direction.NORTHWEST, Direction.SOUTHWEST, Direction.WEST },
-			{ Direction.SOUTHEAST, Direction.SOUTH, Direction.EAST, Direction.NORTHEAST, Direction.SOUTHWEST,
-					Direction.NORTH, Direction.WEST, Direction.NORTHWEST },
 			{ Direction.SOUTH, Direction.SOUTHWEST, Direction.SOUTHEAST, Direction.WEST, Direction.EAST,
 					Direction.NORTHWEST, Direction.NORTHEAST, Direction.NORTH },
+			{ Direction.EAST, Direction.NORTHEAST, Direction.SOUTHEAST, Direction.NORTH, Direction.SOUTH,
+					Direction.NORTHWEST, Direction.SOUTHWEST, Direction.WEST },
+			{ Direction.WEST, Direction.NORTHWEST, Direction.SOUTHWEST, Direction.SOUTH, Direction.NORTH,
+					Direction.NORTHEAST, Direction.SOUTHEAST, Direction.EAST },
+			{ Direction.NORTHWEST, Direction.NORTH, Direction.WEST, Direction.NORTHEAST, Direction.SOUTHWEST,
+					Direction.EAST, Direction.SOUTH, Direction.SOUTHEAST },
+			{ Direction.SOUTHEAST, Direction.SOUTH, Direction.EAST, Direction.NORTHEAST, Direction.SOUTHWEST,
+					Direction.NORTH, Direction.WEST, Direction.NORTHWEST },
 			{ Direction.SOUTHWEST, Direction.SOUTH, Direction.WEST, Direction.SOUTHEAST, Direction.NORTHWEST,
 					Direction.NORTH, Direction.EAST, Direction.NORTHEAST },
-			{ Direction.WEST, Direction.NORTHWEST, Direction.SOUTHWEST, Direction.SOUTH, Direction.NORTH,
-					Direction.NORTHEAST, Direction.SOUTHEAST, Direction.EAST } };
+			{ Direction.NORTHEAST, Direction.NORTH, Direction.EAST, Direction.NORTHWEST, Direction.SOUTHEAST,
+					Direction.WEST, Direction.SOUTH, Direction.SOUTHWEST }};
 
 	static int turnCount;
 
@@ -531,11 +531,13 @@ public strictfp class RobotPlayer {
 			stormPoint=(int)(Math.random()*7);
 			//System.out.println("MY STORM COUNT IS: " + stormPoint);
 			firstTurn();// Sets ECFlag
-			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
-			if (ECFlag[3] >= 2 && ECFlag[3] <= 9) {
-				//System.out.println("I HAVE MISSION: " + ECFlag[3]);
-				muckrakerMission = ECFlag[3];// Get our mission; see strategy doc for meaning. It'll be between 2 and 9
-				stormPoint=6;
+			if(rc.canGetFlag(enlightenmentCenterID)) {
+				int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
+				if (ECFlag[3] >= 2 && ECFlag[3] <= 9) {
+					//System.out.println("I HAVE MISSION: " + ECFlag[3]);
+					muckrakerMission = ECFlag[3];// Get our mission; see strategy doc for meaning. It'll be between 2 and 9
+					stormPoint = 6;
+				}
 			}
 		}
 
@@ -1932,14 +1934,18 @@ public strictfp class RobotPlayer {
 		}
 		if (!(muckrakerMission >= 2 && muckrakerMission <= 9))
 			return;
-		Direction[][] movements = { { Direction.NORTHWEST, Direction.NORTH, Direction.NORTHEAST },
-				{ Direction.NORTH, Direction.NORTHEAST, Direction.EAST },
-				{ Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST },
-				{ Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH },
+		Direction[][] movements = {
+				{ Direction.NORTHWEST, Direction.NORTH, Direction.NORTHEAST },
 				{ Direction.SOUTHEAST, Direction.SOUTH, Direction.SOUTHWEST },
+				{ Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST },
+				{ Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST },
+				{ Direction.WEST, Direction.NORTHWEST, Direction.NORTH },
+				{ Direction.EAST, Direction.SOUTHEAST, Direction.SOUTH },
 				{ Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST },
-				{ Direction.SOUTHWEST, Direction.SOUTH, Direction.WEST },
-				{ Direction.WEST, Direction.NORTHWEST, Direction.NORTH } };
+				{ Direction.NORTH, Direction.NORTHEAST, Direction.EAST }
+
+
+				 };
 		ArrayList<Direction> canMove = new ArrayList<Direction>();
 		for (Direction a : movements[muckrakerMission - 2]) {
 			if (rc.canMove(a))
