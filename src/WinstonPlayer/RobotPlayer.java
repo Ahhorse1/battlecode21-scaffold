@@ -529,11 +529,11 @@ public strictfp class RobotPlayer {
 		// First turn stuffs
 		if (turnCount == 1) {
 			stormPoint=(int)(Math.random()*7);
-			System.out.println("MY STORM COUNT IS: " + stormPoint);
+			//System.out.println("MY STORM COUNT IS: " + stormPoint);
 			firstTurn();// Sets ECFlag
 			int[] ECFlag = decodeFlag(rc.getFlag(enlightenmentCenterID));
 			if (ECFlag[3] >= 2 && ECFlag[3] <= 9) {
-				System.out.println("I HAVE MISSION: " + ECFlag[3]);
+				//System.out.println("I HAVE MISSION: " + ECFlag[3]);
 				muckrakerMission = ECFlag[3];// Get our mission; see strategy doc for meaning. It'll be between 2 and 9
 				stormPoint=6;
 			}
@@ -707,7 +707,7 @@ public strictfp class RobotPlayer {
 		// Move somewhere based on destination, then antigrouping, then randomly
 		Direction anti = antiGroupingMovement();
 		if (haveDestination && navigateTo(targetDest)) {
-			System.out.println("NAVIGATED TO:  " + targetDest.x + "  and " + targetDest.y);
+			//System.out.println("NAVIGATED TO:  " + targetDest.x + "  and " + targetDest.y);
 			return;
 		}else if (rc.canMove(anti))// Run antigrouping stuff
 			rc.move(anti);
